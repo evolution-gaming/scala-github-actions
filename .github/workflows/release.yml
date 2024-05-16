@@ -25,7 +25,7 @@ jobs:
           contains=$(grep "ThisBuild / version := \"$version\"" version.sbt)
           if [[ ! $contains ]]
           then
-            echo 'FAIL - version in "tag" (${tag}) is different than one in "version.sbt" file' >> $GITHUB_OUTPUT
+            echo 'FAIL - version in "tag" (${tag}) is different than one in "version.sbt" file'
             exit 1
           fi
 
