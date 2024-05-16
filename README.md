@@ -24,7 +24,7 @@ To use Scala Release workflow have to set up project:
   ```
 * create `release.yml` file with content:
   ```yaml
-    name: Test and Publish new Release
+    name: Publish Release
     
     on:
       release:

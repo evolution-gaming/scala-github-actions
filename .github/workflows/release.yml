@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: check tag matches with version in `version.sbt`
+      - name: check if tag matches with version in `version.sbt`
         run: |
           tag=${{ github.event.release.tag_name }} # get tag name, like: `v1.2.3`
           version=${tag:1} # drop `v` prefix, like `1.2.3`
