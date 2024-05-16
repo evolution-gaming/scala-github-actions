@@ -58,3 +58,26 @@ The above sequence will start Release workflow, which will:
   pressing `Publish release` button again
 
 When release is published, make sure to amend `version.sbt` file with next version string.
+
+## Recommended Scala project setup
+
+### scalafmt
+
+Minimal [configuration](.scalafmt.conf) requires usage of [plugin](https://scalameta.org/scalafmt/) like:
+```sbt
+addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "<latest version>")
+```
+
+### scalafix
+
+Minimal [configuration](.scalafix.conf) requires usage of [plugin](https://scalacenter.github.io/scalafix/) like:
+```sbt
+addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "<latest version>")
+```
+
+### scalac options
+
+Evolution's plugin with very strict settings for Scala 2.12 and 2.13 projects
+```sbt
+addSbtPlugin("com.evolution" % "sbt-scalac-opts-plugin" % "<latest version>")
+```
