@@ -1,1 +1,4 @@
-# scala-github-actions
+# Scala GitHub Actions
+
+# Release Action
+

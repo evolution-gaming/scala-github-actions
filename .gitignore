@@ -1,0 +1,14 @@
+# IntelliJ IDEA
+*.iml
+*.idea
+*.ipr
+
+# MacOS specific
+.DS_Store
+
+# Visual Studio Code
+.bloop
+.history
+.metals
+.vscode
+metals.sbt
