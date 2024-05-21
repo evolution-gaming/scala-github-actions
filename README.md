@@ -7,11 +7,12 @@
 To use Scala Release workflow have to set up project:
 * add latest [sbt-release](https://github.com/sbt/sbt-release) plugin
 * add Evolution's artifactory plugin [sbt-artifactory-plugin](https://github.com/evolution-gaming/sbt-artifactory-plugin)
-* defined command alias `check` which runs code quality checks, for example: [scalafmt](https://scalameta.org/scalafmt/) 
-  and [scalafix](https://scalacenter.github.io/scalafix/):
+* defined command alias `check` which runs code quality checks, for example: [scalafmt](https://scalameta.org/scalafmt/)
+  and [scalafix](https://scalacenter.github.io/scalafix/), and binary compatibility check by
+  [sbt-version-policy](https://github.com/scalacenter/sbt-version-policy/):
   ```sbt
-  addCommandAlias("fmt", "scalafixAll; all scalafmtAll scalafmtSbt") // optional: for development
-  addCommandAlias("check", "scalafixEnable; scalafixAll --check; all scalafmtCheckAll scalafmtSbtCheck")
+  addCommandAlias("fmt", "all scalafmtAll scalafmtSbt; scalafixEnable; scalafixAll") // optional: for development
+  addCommandAlias("check", "all versionPolicyCheck Compile/doc scalafmtCheckAll scalafmtSbtCheck; scalafixEnable; scalafixAll --check")
   addCommandAlias("build", "all compile test") // optional: for development
   ```
   as very minimum "no-op" placeholder:
@@ -33,10 +34,10 @@ To use Scala Release workflow have to set up project:
     
     jobs:
       release:
-        uses: evolution-gaming/scala-github-actions/.github/workflows/release.yml@v1
+        uses: evolution-gaming/scala-github-actions/.github/workflows/release.yml@main
         secrets: inherit
     ```
-  
+
 ### Usage
 
 On GitHub:
@@ -47,13 +48,13 @@ On GitHub:
 * set `Release title` to the same string (`v1.2.3`)
 * press `Generate release notes` and review them
 * press `Publish release` button
-* navigate to `Actions` - there it is possible to follow 
+* navigate to `Actions` - there it is possible to follow
 
 The above sequence will start Release workflow, which will:
 * validate consistency of git tag and version
-* run SBT commands `clean; +all check test package` to make sure that code quality is good 
+* run SBT commands `clean; +all check test package` to make sure that code quality is good
 * run SBT command `+publish` to publish packaged artifacts
-* if any of above steps will fail, the workflow will remove git tag and GitHub will mark release notes as `draft` and 
+* if any of above steps will fail, the workflow will remove git tag and GitHub will mark release notes as `draft` and
   it will be possible to adjust code on main branch and attempt publishing again by navigating to drafted release and
   pressing `Publish release` button again
 
@@ -73,6 +74,12 @@ addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "<latest version>")
 Minimal [configuration](.scalafix.conf) requires usage of [plugin](https://scalacenter.github.io/scalafix/) like:
 ```sbt
 addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "<latest version>")
+```
+
+### binary compatibility
+Requires usage of [sbt-version-policy](https://github.com/scalacenter/sbt-version-policy/) plugin like:
+```sbt
+addSbtPlugin("ch.epfl.scala" % "sbt-version-policy" % "<latest version>")
 ```
 
 ### scalac options
