@@ -2,13 +2,13 @@ name: test and publish new release
 
 on:
   workflow_call:
+    secrets:
+      JFROG_ACCESS_TOKEN:
+        required: true
 
 concurrency:
   group: '${{ github.workflow }}-${{ github.ref }}'
   cancel-in-progress: true
-
-env:
-  SBT_CREDENTIALS: '.credentials'
 
 jobs:
   publish-release:
@@ -38,34 +38,45 @@ jobs:
           distribution: 'oracle'
           cache: 'sbt'
 
-      - name: setup credentials
-        run: |
-          echo "realm=Artifactory Realm" >> ${{ env.SBT_CREDENTIALS }}
-          echo "host=evolution.jfrog.io" >> ${{ env.SBT_CREDENTIALS }}
-          echo "user=github-publish" >> ${{ env.SBT_CREDENTIALS }}
-          echo "password=${{secrets.JFROG_ACCESS_TOKEN}}" >> ${{ env.SBT_CREDENTIALS }}
-
       - name: check, test and package
         run: sbt "clean; +check; +all test package"
 
-      - name: publish on JFrog Artifactory
-        run: sbt "+publish"
+      - name: setup JFrog CLI
+        uses: jfrog/setup-jfrog-cli@v4
+        env:
+          JF_URL: ${{ secrets.JFROG_URL }}
+          JF_ACCESS_TOKEN: ${{ secrets.JFROG_ACCESS_TOKEN }}
 
-#      - name: prepare next version
-#        run: |
-#          tag=${{ github.event.release.tag_name }} # get tag name, like: `v1.2.3`
-#          version=${tag:1} # drop `v` prefix, like `1.2.3`
-#          current=$( echo $version |grep -Eo '[0-9]+$' ) # last number in version, like `3`
-#          next=$((current+1)) # increase last number, like `4`
-#          prefix=$(echo ${version:0:-${#current}}) # extract prefix, like `1.2.`
-#          echo -e "ThisBuild / version := \"$prefix$next\"\n" > version.sbt
-#          git commit -m "prepare next version"
-#          git status
-#          git push
+      - name: upload artifacts
+        shell: bash
+        run: |
+          company=$(sbt organization)
+          org="${organization//.//}"
+          sbt "+all package packageDoc packageSrc makePom"
+#          jfrog rt upload --regexp "target/scala-2.13/(*)_2.13-(*).jar" "maven-local-releases/com/evolution/{1}_2.13/$VERSION/"
+#          jfrog rt upload --regexp "target/scala-2.13/(*)_2.13-(*).pom" "maven-local-releases/com/evolution/{1}_2.13/$VERSION/"
+#          jfrog rt upload --regexp "target/scala-3.3.0/(*)_3-(*).jar" "maven-local-releases/com/evolution/{1}_3/$VERSION/"
+#          jfrog rt upload --regexp "target/scala-3.3.0/(*)_3-(*).pom" "maven-local-releases/com/evolution/{1}_3/$VERSION/"
 
-      - name: cleanup credentials
+      - name: prepare for next version
+        run: |
+          tag=${{ github.event.release.tag_name }} # get tag name, like: `v1.2.3`
+          version=${tag:1} # drop `v` prefix, like `1.2.3`
+          current=$( echo $version |grep -Eo '[0-9]+$' ) # last number in version, like `3`
+          next=$((current+1)) # increase last number, like `4`
+          prefix=$(echo ${version:0:-${#current}}) # extract prefix, like `1.2.`
+          nextVersion="$prefix$next-SNAPSHOT"
+          echo -e "ThisBuild / version := \"$nextVersion\"\n" > version.sbt
+          # or `github-actions[bot]` as on https://github.com/actions/checkout#push-a-commit-using-the-built-in-token
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+          git commit -m "prepare for next release ($nextVersion)"
+          git status
+          git push
+
+      - name: kill workflow
         if: always()
-        run: rm -rf ${{ env.SBT_CREDENTIALS }}
+        run: exit 1
 
       - name: delete tag
         if: failure()
