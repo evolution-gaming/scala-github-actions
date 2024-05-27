@@ -58,6 +58,11 @@ jobs:
 #          jfrog rt upload --regexp "target/scala-3.3.0/(*)_3-(*).jar" "maven-local-releases/com/evolution/{1}_3/$VERSION/"
 #          jfrog rt upload --regexp "target/scala-3.3.0/(*)_3-(*).pom" "maven-local-releases/com/evolution/{1}_3/$VERSION/"
 
+      - uses: actions/checkout@v4
+        with:
+          ref: $(git remote show origin | grep 'HEAD branch' | cut -d' ' -f5)
+#      - run: git checkout HEAD^
+
       - name: prepare for next version
         run: |
           tag=${{ github.event.release.tag_name }} # get tag name, like: `v1.2.3`
@@ -66,8 +71,6 @@ jobs:
           next=$((current+1)) # increase last number, like `4`
           prefix=$(echo ${version:0:-${#current}}) # extract prefix, like `1.2.`
           nextVersion="$prefix$next-SNAPSHOT"
-          mainBranch=$(git remote show origin | grep 'HEAD branch' | cut -d' ' -f5)
-          git switch $mainBranch
           echo -e "ThisBuild / version := \"$nextVersion\"\n" > version.sbt
           # or `github-actions[bot]` as on https://github.com/actions/checkout#push-a-commit-using-the-built-in-token
           git config user.name "${{ github.actor }}"
