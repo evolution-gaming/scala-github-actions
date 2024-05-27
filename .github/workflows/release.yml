@@ -59,9 +59,11 @@ jobs:
 #          jfrog rt upload --regexp "target/scala-3.3.0/(*)_3-(*).pom" "maven-local-releases/com/evolution/{1}_3/$VERSION/"
 
       - uses: actions/checkout@v4
-        with:
-          ref: $(git remote show origin | grep 'HEAD branch' | cut -d' ' -f5)
-#      - run: git checkout HEAD^
+#        with:
+#          ref:
+      - run: |
+          main=$(git remote show origin | grep 'HEAD branch' | cut -d' ' -f5)
+          git checkout $main
 
       - name: prepare for next version
         run: |
