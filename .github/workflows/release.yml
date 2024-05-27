@@ -62,7 +62,6 @@ jobs:
         with:
           fetch-depth: 0 # fetch all history for all branches and tags
       - run: |
-          git remote
           git remote show origin
           git status
           git symbolic-ref refs/remotes/origin/HEAD
