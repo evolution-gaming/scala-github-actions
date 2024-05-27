@@ -38,32 +38,33 @@ jobs:
           distribution: 'oracle'
           cache: 'sbt'
 
-      - name: check, test and package
-        run: sbt "clean; +check; +all test package"
-
-      - name: setup JFrog CLI
-        uses: jfrog/setup-jfrog-cli@v4
-        env:
-          JF_URL: ${{ secrets.JFROG_URL }}
-          JF_ACCESS_TOKEN: ${{ secrets.JFROG_ACCESS_TOKEN }}
-
-      - name: upload artifacts
-        shell: bash
-        run: |
-          company=$(sbt organization)
-          org="${organization//.//}"
-          sbt "+all package packageDoc packageSrc makePom"
-#          jfrog rt upload --regexp "target/scala-2.13/(*)_2.13-(*).jar" "maven-local-releases/com/evolution/{1}_2.13/$VERSION/"
-#          jfrog rt upload --regexp "target/scala-2.13/(*)_2.13-(*).pom" "maven-local-releases/com/evolution/{1}_2.13/$VERSION/"
-#          jfrog rt upload --regexp "target/scala-3.3.0/(*)_3-(*).jar" "maven-local-releases/com/evolution/{1}_3/$VERSION/"
-#          jfrog rt upload --regexp "target/scala-3.3.0/(*)_3-(*).pom" "maven-local-releases/com/evolution/{1}_3/$VERSION/"
+#      - name: check, test and package
+#        run: sbt "clean; +check; +all test package"
+#
+#      - name: setup JFrog CLI
+#        uses: jfrog/setup-jfrog-cli@v4
+#        env:
+#          JF_URL: ${{ secrets.JFROG_URL }}
+#          JF_ACCESS_TOKEN: ${{ secrets.JFROG_ACCESS_TOKEN }}
+#
+#      - name: upload artifacts
+#        shell: bash
+#        run: |
+#          company=$(sbt organization)
+#          org="${organization//.//}"
+#          sbt "+all package packageDoc packageSrc makePom"
+##          jfrog rt upload --regexp "target/scala-2.13/(*)_2.13-(*).jar" "maven-local-releases/com/evolution/{1}_2.13/$VERSION/"
+##          jfrog rt upload --regexp "target/scala-2.13/(*)_2.13-(*).pom" "maven-local-releases/com/evolution/{1}_2.13/$VERSION/"
+##          jfrog rt upload --regexp "target/scala-3.3.0/(*)_3-(*).jar" "maven-local-releases/com/evolution/{1}_3/$VERSION/"
+##          jfrog rt upload --regexp "target/scala-3.3.0/(*)_3-(*).pom" "maven-local-releases/com/evolution/{1}_3/$VERSION/"
 
       - uses: actions/checkout@v4
-#        with:
-#          ref:
+        with:
+          fetch-depth: 0 # fetch all history for all branches and tags
       - run: |
-          main=$(git symbolic-ref refs/remotes/origin/HEAD --short)
-          git checkout $main
+          main=$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')
+          git fetch origin $main --depth 1
+          git checkout origin/$main
 
       - name: prepare for next version
         run: |
