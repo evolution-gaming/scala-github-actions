@@ -68,6 +68,7 @@ jobs:
           main=$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')
 #          git fetch origin $main --depth 1
 #          git checkout origin/$main
+
           $(git branch $main remotes/origin/$main)
 
       - name: prepare for next version
