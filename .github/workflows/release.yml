@@ -1,9 +1,7 @@
 name: Test and publish a new release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_call:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
