@@ -1,6 +1,64 @@
 # Scala GitHub Actions
 
-## Scala Release workflow
+## Scala Release workflow (v2)
+
+### Setup
+
+To use Scala Release workflow have to set up project:
+* add latest [sbt-dynver](https://github.com/sbt/sbt-dynver) plugin
+* add Evolution's artifactory plugin [sbt-artifactory-plugin](https://github.com/evolution-gaming/sbt-artifactory-plugin)
+* defined command alias `check` which runs code quality checks, for example: [scalafmt](https://scalameta.org/scalafmt/)
+  and [scalafix](https://scalacenter.github.io/scalafix/), and binary compatibility check by
+  [sbt-version-policy](https://github.com/scalacenter/sbt-version-policy/):
+  ```sbt
+  addCommandAlias("fmt", "all scalafmtAll scalafmtSbt; scalafixEnable; scalafixAll") // optional: for development
+  addCommandAlias("check", "all versionPolicyCheck Compile/doc scalafmtCheckAll scalafmtSbtCheck; scalafixEnable; scalafixAll --check")
+  addCommandAlias("build", "all compile test") // optional: for development
+  ```
+  as very minimum "no-op" placeholder:
+  ```sbt
+  addCommandAlias("check", "show version")
+  ```
+* direct `publishTo` to Evolution's artifactory (for publishing artifacts using `sbt-artifactory-plugin`):
+  ```sbt
+  publishTo := Some(Resolver.evolutionReleases)
+  ```
+* create `release.yml` file with content:
+  ```yaml
+    name: Publish Release
+    
+    on:
+      push:
+        tags:
+          - 'v*'
+    
+    jobs:
+      release:
+        uses: evolution-gaming/scala-github-actions/.github/workflows/release.yml@v2
+        secrets: inherit
+    ```
+
+### Usage
+
+In project's repo:
+* crate new version tag, like `git tag v1.2.3 -a -m "release v1.2.3"`
+* push the tag, `git push origin tag v1.2.3`
+
+The above sequence will start Release workflow, which will:
+* run SBT commands `+clean; +check; +all test package` to make sure that code quality is good
+* run SBT command `+publish` to publish packaged artifacts
+* if any of above steps will fail, the workflow will remove git tag, improve code and push fix and tag again
+
+On GitHub:
+* go to `Actions` and follow release's log to check if artifacts are published
+* go to `Code` and navigate to `Releases`
+* press `Draft a new release` button
+* in `Choose a tag` pick a tag (`v1.2.3`)
+* press `Generate release notes` and review them
+* add more notes, if generated ones are not expressive enough
+* press `Publish release` button
+
+## Scala Release workflow (v1)
 
 ### Setup
 
@@ -48,7 +106,7 @@ On GitHub:
 * set `Release title` to the same string (`v1.2.3`)
 * press `Generate release notes` and review them
 * press `Publish release` button
-* navigate to `Actions` - there it is possible to follow
+* navigate to `Actions` - there it is possible to follow build's progress
 
 The above sequence will start Release workflow, which will:
 * validate consistency of git tag and version
