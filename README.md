@@ -41,22 +41,17 @@ To use Scala Release workflow have to set up project:
 ### Usage
 
 In project's repo:
+* push tag as separate activity 
 * crate new version tag, like `git tag v1.2.3 -a -m "release v1.2.3"`
 * push the tag, `git push origin tag v1.2.3`
 
 The above sequence will start Release workflow, which will:
 * run SBT commands `+clean; +check; +all test package` to make sure that code quality is good
 * run SBT command `+publish` to publish packaged artifacts
-* if any of above steps will fail, the workflow will remove git tag, improve code and push fix and tag again
-
-On GitHub:
-* go to `Actions` and follow release's log to check if artifacts are published
+* if any of above steps will fail, the workflow will remove git tag - improve code and push fix, later tag again
+* workflow will auto-generate release notes and will publish them
 * go to `Code` and navigate to `Releases`
-* press `Draft a new release` button
-* in `Choose a tag` pick a tag (`v1.2.3`)
-* press `Generate release notes` and review them
-* add more notes, if generated ones are not expressive enough
-* press `Publish release` button
+* review release notes and amend, if required
 
 ## Scala Release workflow (v1)
 
