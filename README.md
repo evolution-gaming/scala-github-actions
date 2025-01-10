@@ -1,6 +1,6 @@
 # Scala GitHub Actions
 
-## Scala Release workflow (v2)
+## Scala Release workflow (v3)
 
 ### Setup
 
@@ -34,7 +34,7 @@ To use Scala Release workflow have to set up project:
     
     jobs:
       release:
-        uses: evolution-gaming/scala-github-actions/.github/workflows/release.yml@v2
+        uses: evolution-gaming/scala-github-actions/.github/workflows/release.yml@v3
         secrets: inherit
     ```
 
@@ -52,6 +52,10 @@ The above sequence will start Release workflow, which will:
 * workflow will auto-generate release notes and will publish them
 * go to `Code` and navigate to `Releases`
 * review release notes and amend, if required
+
+## Scala Release workflow (v2)
+
+Replaced by `v3` because GitHub excluded SBT from `ubuntu-latest` ([details](https://github.com/actions/setup-java/issues/712#issuecomment-2557396980)). 
 
 ## Scala Release workflow (v1)
 
