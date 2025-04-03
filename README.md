@@ -1,6 +1,6 @@
 # Scala GitHub Actions
 
-## Scala Release workflow (v3)
+## Scala Release workflow (v3 - v4)
 
 ### Setup
 
@@ -34,7 +34,7 @@ To use Scala Release workflow have to set up project:
     
     jobs:
       release:
-        uses: evolution-gaming/scala-github-actions/.github/workflows/release.yml@v3
+        uses: evolution-gaming/scala-github-actions/.github/workflows/release.yml@v4
         secrets: inherit
     ```
 
@@ -46,12 +46,26 @@ In project's repo:
 * push the tag, `git push origin tag v1.2.3`
 
 The above sequence will start Release workflow, which will:
-* run SBT commands `+clean; +check; +all test package` to make sure that code quality is good
+* run SBT commands `+clean; +check; +all test package` to verify the build
 * run SBT command `+publish` to publish packaged artifacts
 * if any of above steps will fail, the workflow will remove git tag - improve code and push fix, later tag again
 * workflow will auto-generate release notes and will publish them
 * go to `Code` and navigate to `Releases`
 * review release notes and amend, if required
+
+The `v4` additionally allows overriding SBT commands used by the release job.
+It is especially useful for projects which have mixed Scala versions in submodules and for which the `+`, `+all`
+SBT features might not work properly:
+```yaml
+jobs:
+  release:
+    uses: evolution-gaming/scala-github-actions/.github/workflows/release.yml@v4
+    secrets: inherit
+    with:
+      # override sbt commands so they don't use "+" because the project uses mixed Scala versions with sbt-projectmatrix
+      verify_sbt_command: 'clean; check; all test package'
+      publish_sbt_command: 'publish'
+```
 
 ## Scala Release workflow (v2)
 
