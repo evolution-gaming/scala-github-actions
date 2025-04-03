@@ -2,6 +2,15 @@ name: Test and publish a new release
 
 on:
   workflow_call:
+    inputs:
+      verify_sbt_command:
+        description: 'sbt command for verifying the build before publishing'
+        required: true
+        default: '+clean; +check; +all test package'
+      publish_sbt_command:
+        description: 'sbt command for publishing artefacts to the Evo JFrog Artifactory'
+        required: true
+        default: '+publish'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -39,11 +48,11 @@ jobs:
           echo "user=github-publish" >> ${{ env.SBT_CREDENTIALS }}
           echo "password=${{secrets.JFROG_ACCESS_TOKEN}}" >> ${{ env.SBT_CREDENTIALS }}
 
-      - name: check, test and package
-        run: sbt "+clean; +check; +all test package"
+      - name: verify the build
+        run: sbt "${{ github.event.inputs.verify_sbt_command }}"
 
       - name: publish on JFrog Artifactory
-        run: sbt "+publish"
+        run: sbt "${{ github.event.inputs.publish_sbt_command }}"
 
       - name: cleanup credentials
         if: always()
