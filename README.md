@@ -53,7 +53,7 @@ The above sequence will start Release workflow, which will:
 * go to `Code` and navigate to `Releases`
 * review release notes and amend, if required
 
-The `v4` additionally allows overriding SBT commands used by the release job.
+The `v4` version additionally allows overriding SBT commands used by the release job.
 It is especially useful for projects which have mixed Scala versions in submodules and for which the `+`, `+all`
 SBT features might not work properly:
 ```yaml
