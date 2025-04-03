@@ -51,10 +51,10 @@ jobs:
           echo "password=${{secrets.JFROG_ACCESS_TOKEN}}" >> ${{ env.SBT_CREDENTIALS }}
 
       - name: verify the build
-        run: sbt "${{ github.event.inputs.verify_sbt_command }}"
+        run: sbt "${{ inputs.verify_sbt_command }}"
 
       - name: publish on JFrog Artifactory
-        run: sbt "${{ github.event.inputs.publish_sbt_command }}"
+        run: sbt "${{ inputs.publish_sbt_command }}"
 
       - name: cleanup credentials
         if: always()
