@@ -6,10 +6,12 @@ on:
       verify_sbt_command:
         description: 'sbt command for verifying the build before publishing'
         required: true
+        type: string
         default: '+clean; +check; +all test package'
       publish_sbt_command:
         description: 'sbt command for publishing artefacts to the Evo JFrog Artifactory'
         required: true
+        type: string
         default: '+publish'
 
 concurrency:
