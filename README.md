@@ -1,6 +1,6 @@
 # Scala GitHub Actions
 
-## Scala Release workflow (v3 - v4)
+## Scala Release workflow (v3, v4, v5)
 
 ### Setup
 
