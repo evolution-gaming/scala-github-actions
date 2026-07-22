@@ -34,7 +34,7 @@ To use Scala Release workflow have to set up project:
     
     jobs:
       release:
-        uses: evolution-gaming/scala-github-actions/.github/workflows/release.yml@v4
+        uses: evolution-gaming/scala-github-actions/.github/workflows/release.yml@v5
         secrets: inherit
     ```
 
