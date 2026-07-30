@@ -40,6 +40,8 @@ jobs:
 
       - name: setup SBT
         uses: sbt/setup-sbt@v1
+        with:
+          disk-cache: false
 
       - name: setup credentials
         run: |
