@@ -19,7 +19,7 @@ on:
 
 jobs:
   test:
-    uses: evolution-gaming/scala-github-actions/.github/workflows/ci.yml@2a389d2a5f4b093e72f738464bd7472bd0c3b4b8 # v6
+    uses: evolution-gaming/scala-github-actions/.github/workflows/ci.yml@<sha> # v6.2.0
 ```
 
 Nothing else is required if the project uses the defaults below.
@@ -27,9 +27,15 @@ Nothing else is required if the project uses the defaults below.
 Two things about that snippet are deliberate, both because SonarQube Cloud's quality gate rejects the
 alternatives and drops the security rating to C:
 
-* the workflow is pinned to a **full commit SHA**, with the tag in a trailing comment. Resolve the
-  current one with
-  `gh api repos/evolution-gaming/scala-github-actions/git/ref/tags/v6 --jq .object.sha`.
+* the workflow is pinned to a **full commit SHA**, with the tag in a trailing comment. The snippet
+  writes it as `<sha>` on purpose, so this README cannot go stale every time `v6` moves. Resolve the
+  current value with:
+
+  ```sh
+  gh api repos/evolution-gaming/scala-github-actions/git/tags/$(
+    gh api repos/evolution-gaming/scala-github-actions/git/ref/tags/v6 --jq .object.sha
+  ) --jq .object.sha
+  ```
 * there is **no `secrets: inherit`**. It is not needed — `GITHUB_TOKEN` is available to a called
   workflow automatically, and that is what the Coveralls upload uses. Only the optional Sonar scan
   needs a secret.
@@ -55,7 +61,7 @@ Example for a project without `sbt-version-policy` and on a different Scala set:
 ```yaml
 jobs:
   test:
-    uses: evolution-gaming/scala-github-actions/.github/workflows/ci.yml@2a389d2a5f4b093e72f738464bd7472bd0c3b4b8 # v6
+    uses: evolution-gaming/scala-github-actions/.github/workflows/ci.yml@<sha> # v6.2.0
     with:
       scala_versions: '["2.13.18", "3.3.7"]'
       version_policy_check: false
