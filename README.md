@@ -1,5 +1,74 @@
 # Scala GitHub Actions
 
+## Scala CI workflow
+
+Runs tests, coverage, binary compatibility, formatting and scaladoc on every push and pull request.
+Replaces the hand-written `ci.yml` that each project used to carry.
+
+### Setup
+
+Create `.github/workflows/ci.yml`:
+
+```yaml
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+
+jobs:
+  test:
+    uses: evolution-gaming/scala-github-actions/.github/workflows/ci.yml@v6
+    secrets: inherit
+```
+
+Nothing else is required if the project uses the defaults below. Coverage is uploaded to Coveralls,
+so `secrets: inherit` is needed for `GITHUB_TOKEN`.
+
+### Inputs
+
+| input | default | notes |
+|---|---|---|
+| `scala_versions` | `'["2.13.18", "3.3.8"]'` | JSON array; becomes the build matrix |
+| `java_version` | `'17'` | |
+| `java_distribution` | `'temurin'` | |
+| `test_task` | auto | `testFull` on sbt 2, `test` on sbt 1, read from `project/build.properties` |
+| `coverage` | `true` | collect coverage and upload to Coveralls |
+| `version_policy_check` | `true` | requires [sbt-version-policy](https://github.com/scalacenter/sbt-version-policy/) |
+| `scalafmt_check` | `true` | |
+| `doc_check` | `true` | runs `Compile/doc` |
+
+Example for a project without `sbt-version-policy` and on a different Scala set:
+
+```yaml
+jobs:
+  test:
+    uses: evolution-gaming/scala-github-actions/.github/workflows/ci.yml@v6
+    secrets: inherit
+    with:
+      scala_versions: '["2.13.18", "3.3.7"]'
+      version_policy_check: false
+```
+
+### Why the steps are ordered this way
+
+Two sbt 2 behaviours make a naive coverage setup report nothing while still passing:
+
+* sbt 2's compile cache is **not** keyed on scoverage's instrumentation. If a plain compile runs
+  first, the coverage build reuses those uninstrumented classes and the report comes out empty. The
+  coverage build therefore runs **before** the formatting, binary-compatibility and scaladoc checks.
+* `sbt/setup-sbt` restores `~/.cache/sbt` across runs by default, which reintroduces the same problem
+  on any run whose build files did not change. This workflow sets `disk-cache: false` whenever
+  coverage is enabled.
+
+The workflow also fails if the produced cobertura report has no valid lines, so a silently empty
+report is an error rather than a green build.
+
+Binary compatibility, formatting and scaladoc run as **explicit sbt tasks**, not via a project-local
+`check` alias. An alias can be stubbed out (`addCommandAlias("check", "show version")`), which makes
+the gate silently guarantee nothing.
+
 ## Scala Release workflow (v3, v4, v5)
 
 ### Setup
