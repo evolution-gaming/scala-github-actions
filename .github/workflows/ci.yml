@@ -1,0 +1,144 @@
+name: Test a Scala project
+
+on:
+  workflow_call:
+    inputs:
+      scala_versions:
+        description: 'JSON array of Scala versions to build against'
+        type: string
+        default: '["2.13.18", "3.3.8"]'
+      java_version:
+        description: 'JDK version'
+        type: string
+        default: '17'
+      java_distribution:
+        description: 'JDK distribution'
+        type: string
+        default: 'temurin'
+      test_task:
+        description: >-
+          sbt task that runs the tests. Defaults to `testFull` on sbt 2 and `test` on sbt 1,
+          detected from project/build.properties.
+        type: string
+        default: ''
+      coverage:
+        description: 'Collect test coverage and upload it to Coveralls'
+        type: boolean
+        default: true
+      version_policy_check:
+        description: 'Run versionPolicyCheck (binary compatibility). Requires sbt-version-policy.'
+        type: boolean
+        default: true
+      scalafmt_check:
+        description: 'Check formatting with scalafmt'
+        type: boolean
+        default: true
+      doc_check:
+        description: 'Check that scaladoc builds'
+        type: boolean
+        default: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        scala: ${{ fromJSON(inputs.scala_versions) }}
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: coursier/cache-action@v8
+
+      - name: setup Java ${{ inputs.java_version }}
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ inputs.java_version }}
+          distribution: ${{ inputs.java_distribution }}
+          cache: 'sbt'
+
+      - name: setup SBT
+        uses: sbt/setup-sbt@v1
+        with:
+          # sbt 2's disk cache is restored across runs and is not keyed on scoverage's
+          # instrumentation. A cached compile would be reused without re-emitting coverage data,
+          # leaving an empty report while the build still passes.
+          disk-cache: ${{ !inputs.coverage }}
+
+      - name: resolve test task
+        id: tasks
+        env:
+          TEST_TASK: ${{ inputs.test_task }}
+        run: |
+          if [[ -n "$TEST_TASK" ]]; then
+            echo "test=$TEST_TASK" >> "$GITHUB_OUTPUT"
+          elif grep -qE '^sbt\.version\s*=\s*2\.' project/build.properties; then
+            # sbt 2 redefined `test` to run only tests that failed or never ran
+            echo "test=testFull" >> "$GITHUB_OUTPUT"
+          else
+            echo "test=test" >> "$GITHUB_OUTPUT"
+          fi
+
+      # The coverage build runs before any other compile: scoverage's instrumentation is not part of
+      # sbt's compile cache key, so a plain compile done first would be reused here and the coverage
+      # report would come out empty.
+      - name: build ${{ matrix.scala }}
+        run: |
+          if [[ "${{ inputs.coverage }}" == "true" ]]; then
+            sbt "++${{ matrix.scala }}; clean; coverage; ${{ steps.tasks.outputs.test }}; coverageAggregate"
+          else
+            sbt "++${{ matrix.scala }}; clean; ${{ steps.tasks.outputs.test }}"
+          fi
+
+      - name: locate coverage report
+        id: coverage
+        if: inputs.coverage && success()
+        run: echo "file=$(find . -path '*/coverage-report/cobertura.xml' | head -1)" >> "$GITHUB_OUTPUT"
+
+      - name: fail if coverage report is empty
+        if: inputs.coverage && success()
+        env:
+          REPORT: ${{ steps.coverage.outputs.file }}
+        run: |
+          if [[ -z "$REPORT" || ! -f "$REPORT" ]]; then
+            echo "::error::no cobertura report was produced"
+            exit 1
+          fi
+          # Only the root <coverage> element's totals matter; individual classes may legitimately
+          # have no lines.
+          valid=$(grep -m1 -oE 'lines-valid="[0-9]+"' "$REPORT" | grep -oE '[0-9]+')
+          if [[ "${valid:-0}" -eq 0 ]]; then
+            echo "::error::coverage report is empty - instrumentation did not run"
+            exit 1
+          fi
+
+      - name: upload coverage
+        if: inputs.coverage && success()
+        uses: coverallsapp/github-action@v2
+        with:
+          file: ${{ steps.coverage.outputs.file }}
+          format: cobertura
+          flag-name: Scala ${{ matrix.scala }}
+
+      # These run as explicit tasks rather than through a project-local `check` alias, which can be
+      # stubbed out and then silently guarantees nothing.
+      - name: binary compatibility ${{ matrix.scala }}
+        if: inputs.version_policy_check
+        run: sbt "++${{ matrix.scala }}; versionPolicyCheck"
+
+      - name: formatting ${{ matrix.scala }}
+        if: inputs.scalafmt_check
+        run: sbt "++${{ matrix.scala }}; scalafmtCheckAll; scalafmtSbtCheck"
+
+      - name: scaladoc ${{ matrix.scala }}
+        if: inputs.doc_check
+        run: sbt "++${{ matrix.scala }}; Compile/doc"
