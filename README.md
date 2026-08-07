@@ -38,6 +38,9 @@ so `secrets: inherit` is needed for `GITHUB_TOKEN`.
 | `version_policy_check` | `true` | requires [sbt-version-policy](https://github.com/scalacenter/sbt-version-policy/) |
 | `scalafmt_check` | `true` | |
 | `doc_check` | `true` | runs `Compile/doc` |
+| `sonar` | `false` | run a SonarQube Cloud scan, see below |
+| `sonar_project_key` | `<owner>_<repo>` | |
+| `sonar_args` | `''` | extra `-D` arguments for the scanner |
 
 Example for a project without `sbt-version-policy` and on a different Scala set:
 
@@ -68,6 +71,29 @@ report is an error rather than a green build.
 Binary compatibility, formatting and scaladoc run as **explicit sbt tasks**, not via a project-local
 `check` alias. An alias can be stubbed out (`addCommandAlias("check", "show version")`), which makes
 the gate silently guarantee nothing.
+
+The workflow checks out with `fetch-depth: 0`. Without tags sbt-dynver reports the version as
+`0.0.0`, `versionPolicyCheck` then has no previous version to compare against, and the binary
+compatibility check passes without checking anything.
+
+### SonarQube Cloud
+
+Off by default. Enable with `sonar: true`, which scans once, on the first Scala version, importing
+scoverage's per-module reports. Configuration is passed as scanner arguments, so no per-repo
+`sonar-project.properties` is needed.
+
+Three prerequisites, all outside this repo:
+
+1. A `SONAR_TOKEN` organization secret. It does not exist yet, so `sonar: true` will fail until it is
+   added.
+2. The project must already exist on SonarQube Cloud — the scanner reports to a project, it does not
+   create one.
+3. **Automatic Analysis must be turned off** for that project. It and CI-based scanning are mutually
+   exclusive, and Automatic Analysis wins, so the scan will be rejected while it is on.
+
+Note that the SonarQube Cloud GitHub App creates a check suite on every commit even in repositories
+it never analyses, which leaves a check permanently queued and reporting no result. Repositories not
+being analysed should have the app removed rather than left in that state.
 
 ## Scala Release workflow (v3, v4, v5)
 
