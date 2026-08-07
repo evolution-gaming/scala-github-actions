@@ -51,6 +51,12 @@ on:
         description: 'Extra -D arguments for the Sonar scanner'
         type: string
         default: ''
+    secrets:
+      SONAR_TOKEN:
+        description: >-
+          Only needed with `sonar: true`. Declared so callers do not have to use `secrets: inherit`,
+          which SonarQube Cloud's own quality gate flags.
+        required: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

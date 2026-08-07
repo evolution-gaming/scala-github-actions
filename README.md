@@ -19,12 +19,20 @@ on:
 
 jobs:
   test:
-    uses: evolution-gaming/scala-github-actions/.github/workflows/ci.yml@v6
-    secrets: inherit
+    uses: evolution-gaming/scala-github-actions/.github/workflows/ci.yml@2a389d2a5f4b093e72f738464bd7472bd0c3b4b8 # v6
 ```
 
-Nothing else is required if the project uses the defaults below. Coverage is uploaded to Coveralls,
-so `secrets: inherit` is needed for `GITHUB_TOKEN`.
+Nothing else is required if the project uses the defaults below.
+
+Two things about that snippet are deliberate, both because SonarQube Cloud's quality gate rejects the
+alternatives and drops the security rating to C:
+
+* the workflow is pinned to a **full commit SHA**, with the tag in a trailing comment. Resolve the
+  current one with
+  `gh api repos/evolution-gaming/scala-github-actions/git/ref/tags/v6 --jq .object.sha`.
+* there is **no `secrets: inherit`**. It is not needed — `GITHUB_TOKEN` is available to a called
+  workflow automatically, and that is what the Coveralls upload uses. Only the optional Sonar scan
+  needs a secret.
 
 ### Inputs
 
@@ -47,8 +55,7 @@ Example for a project without `sbt-version-policy` and on a different Scala set:
 ```yaml
 jobs:
   test:
-    uses: evolution-gaming/scala-github-actions/.github/workflows/ci.yml@v6
-    secrets: inherit
+    uses: evolution-gaming/scala-github-actions/.github/workflows/ci.yml@2a389d2a5f4b093e72f738464bd7472bd0c3b4b8 # v6
     with:
       scala_versions: '["2.13.18", "3.3.7"]'
       version_policy_check: false
@@ -78,9 +85,14 @@ compatibility check passes without checking anything.
 
 ### SonarQube Cloud
 
-Off by default. Enable with `sonar: true`, which scans once, on the first Scala version, importing
-scoverage's per-module reports. Configuration is passed as scanner arguments, so no per-repo
-`sonar-project.properties` is needed.
+Most repositories should **not** use the `sonar` input. Analysis is done server-side by SonarQube
+Cloud's Automatic Analysis, which needs no token, no CI step and no repository configuration — that is
+how `kafka-journal` and the other analysed repositories work. The `sonar` input exists for the
+CI-based scanner, which is the mutually exclusive alternative.
+
+If you do enable it, it scans once, on the first Scala version, importing scoverage's per-module
+reports. Configuration is passed as scanner arguments, so no per-repo `sonar-project.properties` is
+needed.
 
 Three prerequisites, all outside this repo:
 
@@ -90,6 +102,14 @@ Three prerequisites, all outside this repo:
    create one.
 3. **Automatic Analysis must be turned off** for that project. It and CI-based scanning are mutually
    exclusive, and Automatic Analysis wins, so the scan will be rejected while it is on.
+
+The scanner also needs the token passed through, which the caller must do explicitly now that
+`secrets: inherit` is gone:
+
+```yaml
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+```
 
 Note that the SonarQube Cloud GitHub App creates a check suite on every commit even in repositories
 it never analyses, which leaves a check permanently queued and reporting no result. Repositories not
