@@ -37,6 +37,20 @@ on:
         description: 'Check that scaladoc builds'
         type: boolean
         default: true
+      sonar:
+        description: >-
+          Run a SonarQube Cloud scan. Requires a SONAR_TOKEN secret and an existing project on
+          SonarQube Cloud with Automatic Analysis turned off, otherwise the two conflict.
+        type: boolean
+        default: false
+      sonar_project_key:
+        description: 'SonarQube project key. Defaults to <owner>_<repo>.'
+        type: string
+        default: ''
+      sonar_args:
+        description: 'Extra -D arguments for the Sonar scanner'
+        type: string
+        default: ''
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -142,3 +156,31 @@ jobs:
       - name: scaladoc ${{ matrix.scala }}
         if: inputs.doc_check
         run: sbt "++${{ matrix.scala }}; Compile/doc"
+
+      # Scanned once, on the first Scala version only: SonarQube tracks one analysis per branch, so
+      # running it per matrix leg would have the legs overwrite each other.
+      - name: sonar settings
+        id: sonar
+        if: inputs.sonar && matrix.scala == fromJSON(inputs.scala_versions)[0]
+        env:
+          KEY: ${{ inputs.sonar_project_key }}
+        run: |
+          if [[ -z "$KEY" ]]; then
+            KEY="${GITHUB_REPOSITORY/\//_}"
+          fi
+          echo "key=$KEY" >> "$GITHUB_OUTPUT"
+          # scoverage writes one report per module; Sonar takes a comma separated list
+          reports=$(find . -path '*/scoverage-report/scoverage.xml' | paste -sd, -)
+          echo "reports=$reports" >> "$GITHUB_OUTPUT"
+
+      - name: sonar scan
+        if: inputs.sonar && matrix.scala == fromJSON(inputs.scala_versions)[0]
+        uses: SonarSource/sonarqube-scan-action@v8.2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=${{ github.repository_owner }}
+            -Dsonar.projectKey=${{ steps.sonar.outputs.key }}
+            -Dsonar.scala.coverage.reportPaths=${{ steps.sonar.outputs.reports }}
+            ${{ inputs.sonar_args }}
