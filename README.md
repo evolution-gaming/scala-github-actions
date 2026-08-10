@@ -2,8 +2,8 @@
 
 ## Scala CI workflow
 
-Runs tests, coverage, binary compatibility, formatting and scaladoc on every push and pull request.
-Replaces the hand-written `ci.yml` that each project used to carry.
+Runs tests, coverage, binary compatibility, formatting and Scaladoc on every push and pull request.
+Replaces the handwritten `ci.yml` that each project used to carry.
 
 ### Setup
 
@@ -42,19 +42,19 @@ alternatives and drops the security rating to C:
 
 ### Inputs
 
-| input | default | notes |
-|---|---|---|
-| `scala_versions` | `'["2.13.18", "3.3.8"]'` | JSON array; becomes the build matrix |
-| `java_version` | `'17'` | |
-| `java_distribution` | `'temurin'` | |
-| `test_task` | auto | `testFull` on sbt 2, `test` on sbt 1, read from `project/build.properties` |
-| `coverage` | `true` | collect coverage and upload to Coveralls |
-| `version_policy_check` | `true` | requires [sbt-version-policy](https://github.com/scalacenter/sbt-version-policy/) |
-| `scalafmt_check` | `true` | |
-| `doc_check` | `true` | runs `Compile/doc` |
-| `sonar` | `false` | run a SonarQube Cloud scan, see below |
-| `sonar_project_key` | `<owner>_<repo>` | |
-| `sonar_args` | `''` | extra `-D` arguments for the scanner |
+| input                  | default                  | notes                                                                             |
+|------------------------|--------------------------|-----------------------------------------------------------------------------------|
+| `scala_versions`       | `'["2.13.18", "3.3.8"]'` | JSON array; becomes the build matrix                                              |
+| `java_version`         | `'17'`                   |                                                                                   |
+| `java_distribution`    | `'temurin'`              |                                                                                   |
+| `test_task`            | auto                     | `testFull` on sbt 2, `test` on sbt 1, read from `project/build.properties`        |
+| `coverage`             | `true`                   | collect coverage and upload to Coveralls                                          |
+| `version_policy_check` | `true`                   | requires [sbt-version-policy](https://github.com/scalacenter/sbt-version-policy/) |
+| `scalafmt_check`       | `true`                   |                                                                                   |
+| `doc_check`            | `true`                   | runs `Compile/doc`                                                                |
+| `sonar`                | `false`                  | run a SonarQube Cloud scan, see below                                             |
+| `sonar_project_key`    | `<owner>_<repo>`         |                                                                                   |
+| `sonar_args`           | `''`                     | extra `-D` arguments for the scanner                                              |
 
 Example for a project without `sbt-version-policy` and on a different Scala set:
 
@@ -78,10 +78,10 @@ Two sbt 2 behaviours make a naive coverage setup report nothing while still pass
   on any run whose build files did not change. This workflow sets `disk-cache: false` whenever
   coverage is enabled.
 
-The workflow also fails if the produced cobertura report has no valid lines, so a silently empty
+The workflow also fails if the produced Cobertura report has no valid lines, so a silently empty
 report is an error rather than a green build.
 
-Binary compatibility, formatting and scaladoc run as **explicit sbt tasks**, not via a project-local
+Binary compatibility, formatting and Scaladoc run as **explicit sbt tasks**, not via a project-local
 `check` alias. An alias can be stubbed out (`addCommandAlias("check", "show version")`), which makes
 the gate silently guarantee nothing.
 

@@ -21,6 +21,12 @@ on:
           detected from project/build.properties.
         type: string
         default: ''
+      clean_task:
+        description: >-
+          sbt task that cleans the working directory. Defaults to `cleanFull` on sbt 2 and 
+          `clean` on sbt 1, detected from project/build.properties.
+        type: string
+        default: ''
       coverage:
         description: 'Collect test coverage and upload it to Coveralls'
         type: boolean
@@ -34,7 +40,7 @@ on:
         type: boolean
         default: true
       doc_check:
-        description: 'Check that scaladoc builds'
+        description: 'Check that Scaladoc builds'
         type: boolean
         default: true
       sonar:
@@ -95,7 +101,7 @@ jobs:
           disk-cache: ${{ !inputs.coverage }}
 
       - name: resolve test task
-        id: tasks
+        id: test-task
         env:
           TEST_TASK: ${{ inputs.test_task }}
         run: |
@@ -108,15 +114,29 @@ jobs:
             echo "test=test" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: resolve clean task
+        id: clean-task
+        env:
+          CLEAN_TASK: ${{ inputs.clean_task }}
+        run: |
+          if [[ -n "$CLEAN_TASK" ]]; then
+            echo "clean=$CLEAN_TASK" >> "$GITHUB_OUTPUT"
+          elif grep -qE '^sbt\.version\s*=\s*2\.' project/build.properties; then
+            # in sbt 2 the `clean` doesn't remove all generated classes
+            echo "clean=cleanFull" >> "$GITHUB_OUTPUT"
+          else
+            echo "clean=clean" >> "$GITHUB_OUTPUT"
+          fi
+
       # The coverage build runs before any other compile: scoverage's instrumentation is not part of
       # sbt's compile cache key, so a plain compile done first would be reused here and the coverage
       # report would come out empty.
       - name: build ${{ matrix.scala }}
         run: |
           if [[ "${{ inputs.coverage }}" == "true" ]]; then
-            sbt "++${{ matrix.scala }}; clean; coverage; ${{ steps.tasks.outputs.test }}; coverageAggregate"
+            sbt "++${{ matrix.scala }}; ${{ steps.clean-task.outputs.clean }}; coverage; ${{ steps.test-task.outputs.test }}; coverageAggregate"
           else
-            sbt "++${{ matrix.scala }}; clean; ${{ steps.tasks.outputs.test }}"
+            sbt "++${{ matrix.scala }}; ${{ steps.clean-task.outputs.clean }}; ${{ steps.test-task.outputs.test }}"
           fi
 
       - name: locate coverage report
