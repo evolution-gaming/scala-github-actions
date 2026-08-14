@@ -27,22 +27,6 @@ on:
           `clean` on sbt 1, detected from project/build.properties.
         type: string
         default: ''
-      coverage:
-        description: 'Collect test coverage and upload it to Coveralls'
-        type: boolean
-        default: true
-      version_policy_check:
-        description: 'Run versionPolicyCheck (binary compatibility). Requires sbt-version-policy.'
-        type: boolean
-        default: true
-      scalafmt_check:
-        description: 'Check formatting with scalafmt'
-        type: boolean
-        default: true
-      doc_check:
-        description: 'Check that Scaladoc builds'
-        type: boolean
-        default: true
       sonar:
         description: >-
           Run a SonarQube Cloud scan. Requires a SONAR_TOKEN secret and an existing project on
@@ -69,36 +53,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
+  scala-versions:
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-      matrix:
-        scala: ${{ fromJSON(inputs.scala_versions) }}
+    steps:
+      - name: Define Scala versions
+        id: scala
+        run: echo 'versions=${{ inputs.scala_versions }}' >> "$GITHUB_OUTPUT"
+
+    outputs:
+      version: ${{ steps.scala.outputs.versions }}
+
+  sbt-tasks:
+    runs-on: ubuntu-latest
 
     steps:
       - name: checkout
         uses: actions/checkout@v7
         with:
-          fetch-depth: 0
-
-      - uses: coursier/cache-action@v8
-
-      - name: setup Java ${{ inputs.java_version }}
-        uses: actions/setup-java@v5
-        with:
-          java-version: ${{ inputs.java_version }}
-          distribution: ${{ inputs.java_distribution }}
-          cache: 'sbt'
-
-      - name: setup SBT
-        uses: sbt/setup-sbt@v1
-        with:
-          # sbt 2's disk cache is restored across runs and is not keyed on scoverage's
-          # instrumentation. A cached compile would be reused without re-emitting coverage data,
-          # leaving an empty report while the build still passes.
-          disk-cache: ${{ !inputs.coverage }}
+          persist-credentials: false
 
       - name: resolve test task
         id: test-task
@@ -128,24 +101,53 @@ jobs:
             echo "clean=clean" >> "$GITHUB_OUTPUT"
           fi
 
+    outputs:
+      test: ${{ steps.test-task.outputs.test }}
+      clean: ${{ steps.clean-task.outputs.clean }}
+
+  test-coverage:
+    runs-on: ubuntu-latest
+    needs: [scala-versions, sbt-tasks]
+    strategy:
+      matrix:
+        scala: ${{ fromJSON(needs.scala-versions.outputs.version) }}
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: restore cache
+        uses: coursier/cache-action@v8
+
+      - name: setup Java ${{ inputs.java_version }}
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ inputs.java_version }}
+          distribution: ${{ inputs.java_distribution }}
+          cache: 'sbt'
+
+      - name: setup SBT
+        uses: sbt/setup-sbt@v1
+        with:
+          # sbt 2's disk cache is restored across runs. Disable disk cache to force full coverage run
+          disk-cache: false
+
       # The coverage build runs before any other compile: scoverage's instrumentation is not part of
       # sbt's compile cache key, so a plain compile done first would be reused here and the coverage
       # report would come out empty.
       - name: build ${{ matrix.scala }}
         run: |
-          if [[ "${{ inputs.coverage }}" == "true" ]]; then
-            sbt "++${{ matrix.scala }}; ${{ steps.clean-task.outputs.clean }}; coverage; ${{ steps.test-task.outputs.test }}; coverageAggregate"
-          else
-            sbt "++${{ matrix.scala }}; ${{ steps.clean-task.outputs.clean }}; ${{ steps.test-task.outputs.test }}"
-          fi
+          sbt "++${{ matrix.scala }}; ${{ needs.sbt-tasks.outputs.clean }}; coverage; ${{ needs.sbt-tasks.outputs.test }}; coverageAggregate"
 
       - name: locate coverage report
         id: coverage
-        if: inputs.coverage && success()
+        if: success()
         run: echo "file=$(find . -path '*/coverage-report/cobertura.xml' | head -1)" >> "$GITHUB_OUTPUT"
 
       - name: fail if coverage report is empty
-        if: inputs.coverage && success()
+        if: success()
         env:
           REPORT: ${{ steps.coverage.outputs.file }}
         run: |
@@ -162,26 +164,12 @@ jobs:
           fi
 
       - name: upload coverage
-        if: inputs.coverage && success()
+        if: success()
         uses: coverallsapp/github-action@v2
         with:
           file: ${{ steps.coverage.outputs.file }}
           format: cobertura
           flag-name: Scala ${{ matrix.scala }}
-
-      # These run as explicit tasks rather than through a project-local `check` alias, which can be
-      # stubbed out and then silently guarantees nothing.
-      - name: binary compatibility ${{ matrix.scala }}
-        if: inputs.version_policy_check
-        run: sbt "++${{ matrix.scala }}; versionPolicyCheck"
-
-      - name: formatting ${{ matrix.scala }}
-        if: inputs.scalafmt_check
-        run: sbt "++${{ matrix.scala }}; scalafmtCheckAll; scalafmtSbtCheck"
-
-      - name: scaladoc ${{ matrix.scala }}
-        if: inputs.doc_check
-        run: sbt "++${{ matrix.scala }}; Compile/doc"
 
       # Scanned once, on the first Scala version only: SonarQube tracks one analysis per branch, so
       # running it per matrix leg would have the legs overwrite each other.
@@ -201,7 +189,7 @@ jobs:
 
       - name: sonar scan
         if: inputs.sonar && matrix.scala == fromJSON(inputs.scala_versions)[0]
-        uses: SonarSource/sonarqube-scan-action@v8.2
+        uses: SonarSource/sonarqube-scan-action@v8
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
@@ -210,3 +198,92 @@ jobs:
             -Dsonar.projectKey=${{ steps.sonar.outputs.key }}
             -Dsonar.scala.coverage.reportPaths=${{ steps.sonar.outputs.reports }}
             ${{ inputs.sonar_args }}
+
+  binary-compatibility:
+    runs-on: ubuntu-latest
+    needs: [scala-versions, sbt-tasks]
+    strategy:
+      matrix:
+        scala: ${{ fromJSON(needs.scala-versions.outputs.version) }}
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          # checkout whole history with all tags - required by `versionPolicyCheck` for version comparison
+          fetch-depth: 0
+
+      - name: restore cache
+        uses: coursier/cache-action@v8
+
+      - name: setup Java ${{ inputs.java_version }}
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ inputs.java_version }}
+          distribution: ${{ inputs.java_distribution }}
+          cache: 'sbt'
+
+      - name: setup SBT
+        uses: sbt/setup-sbt@v1
+
+      - name: binary compatibility ${{ matrix.scala }}
+        run: sbt "++${{ matrix.scala }}; versionPolicyCheck"
+
+  formatting:
+    runs-on: ubuntu-latest
+    needs: [scala-versions, sbt-tasks]
+    strategy:
+      matrix:
+        scala: ${{ fromJSON(needs.scala-versions.outputs.version) }}
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: restore cache
+        uses: coursier/cache-action@v8
+
+      - name: setup Java ${{ inputs.java_version }}
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ inputs.java_version }}
+          distribution: ${{ inputs.java_distribution }}
+          cache: 'sbt'
+
+      - name: setup SBT
+        uses: sbt/setup-sbt@v1
+
+      - name: formatting ${{ matrix.scala }}
+        run: sbt "++${{ matrix.scala }}; scalafmtCheckRepo"
+
+  scaladoc:
+    runs-on: ubuntu-latest
+    needs: [scala-versions, sbt-tasks]
+    strategy:
+      matrix:
+        scala: ${{ fromJSON(needs.scala-versions.outputs.version) }}
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: restore cache
+        uses: coursier/cache-action@v8
+
+      - name: setup Java ${{ inputs.java_version }}
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ inputs.java_version }}
+          distribution: ${{ inputs.java_distribution }}
+          cache: 'sbt'
+
+      - name: setup SBT
+        uses: sbt/setup-sbt@v1
+
+      - name: scaladoc ${{ matrix.scala }}
+        run: sbt "++${{ matrix.scala }}; ${{ needs.sbt-tasks.outputs.clean }}; Compile/doc"
