@@ -224,11 +224,6 @@ jobs:
 
   formatting:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        scala: ${{ fromJSON(inputs.scala_versions) }}
-
     steps:
       - name: checkout
         uses: actions/checkout@v7
@@ -248,8 +243,8 @@ jobs:
       - name: setup SBT
         uses: sbt/setup-sbt@v1
 
-      - name: formatting ${{ matrix.scala }}
-        run: sbt "++${{ matrix.scala }}; scalafmtCheckRepo"
+      - name: formatting
+        run: sbt "scalafmtCheckRepo"
 
   scaladoc:
     runs-on: ubuntu-latest
