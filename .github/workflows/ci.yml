@@ -53,17 +53,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  scala-versions:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Define Scala versions
-        id: scala
-        run: echo 'versions=${{ inputs.scala_versions }}' >> "$GITHUB_OUTPUT"
-
-    outputs:
-      version: ${{ steps.scala.outputs.versions }}
-
   sbt-tasks:
     runs-on: ubuntu-latest
 
@@ -107,10 +96,11 @@ jobs:
 
   test-coverage:
     runs-on: ubuntu-latest
-    needs: [scala-versions, sbt-tasks]
+    needs: [sbt-tasks]
     strategy:
+      fail-fast: false
       matrix:
-        scala: ${{ fromJSON(needs.scala-versions.outputs.version) }}
+        scala: ${{ fromJSON(inputs.scala_versions) }}
 
     steps:
       - name: checkout
@@ -203,10 +193,11 @@ jobs:
 
   binary-compatibility:
     runs-on: ubuntu-latest
-    needs: [scala-versions, sbt-tasks]
+    needs: [sbt-tasks]
     strategy:
+      fail-fast: false
       matrix:
-        scala: ${{ fromJSON(needs.scala-versions.outputs.version) }}
+        scala: ${{ fromJSON(inputs.scala_versions) }}
 
     steps:
       - name: checkout
@@ -234,10 +225,11 @@ jobs:
 
   formatting:
     runs-on: ubuntu-latest
-    needs: [scala-versions, sbt-tasks]
+    needs: [sbt-tasks]
     strategy:
+      fail-fast: false
       matrix:
-        scala: ${{ fromJSON(needs.scala-versions.outputs.version) }}
+        scala: ${{ fromJSON(inputs.scala_versions) }}
 
     steps:
       - name: checkout
@@ -263,10 +255,11 @@ jobs:
 
   scaladoc:
     runs-on: ubuntu-latest
-    needs: [scala-versions, sbt-tasks]
+    needs: [sbt-tasks]
     strategy:
+      fail-fast: false
       matrix:
-        scala: ${{ fromJSON(needs.scala-versions.outputs.version) }}
+        scala: ${{ fromJSON(inputs.scala_versions) }}
 
     steps:
       - name: checkout
