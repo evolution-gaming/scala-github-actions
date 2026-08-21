@@ -280,3 +280,10 @@ Evolution's plugin with very strict settings for Scala 2.12 and 2.13 projects
 ```sbt
 addSbtPlugin("com.evolution" % "sbt-scalac-opts-plugin" % "<latest version>")
 ```
+
+## Contributing
+
+Contributors from outside the Evolution organization have to sign the
+[Contributor License Agreement](CLA.md) before a pull request can be merged.
+CLA Assistant posts a comment with the link on the pull request, and signing is
+a one-time click that covers every later contribution.
