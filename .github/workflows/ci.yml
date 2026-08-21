@@ -193,7 +193,6 @@ jobs:
 
   binary-compatibility:
     runs-on: ubuntu-latest
-    needs: [sbt-tasks]
     strategy:
       fail-fast: false
       matrix:
@@ -225,7 +224,6 @@ jobs:
 
   formatting:
     runs-on: ubuntu-latest
-    needs: [sbt-tasks]
     strategy:
       fail-fast: false
       matrix:
