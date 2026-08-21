@@ -117,6 +117,8 @@ jobs:
         uses: actions/checkout@v7
         with:
           persist-credentials: false
+          # checkout whole history with all tags - required by `sonar` for blame
+          fetch-depth: 0
 
       - name: restore cache
         uses: coursier/cache-action@v8
