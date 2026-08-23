@@ -121,6 +121,50 @@ Note that the SonarQube Cloud GitHub App creates a check suite on every commit e
 it never analyses, which leaves a check permanently queued and reporting no result. Repositories not
 being analysed should have the app removed rather than left in that state.
 
+## Dependency graph workflow
+
+Submits the sbt dependency graph to GitHub. GitHub cannot parse `build.sbt` natively, so a repo
+that skips this gets **zero Dependabot alerts** and looks falsely clean. Every repo adopting these
+workflows MUST include it.
+
+### Setup
+
+Create `.github/workflows/dependency-graph.yml`, triggered on push to the default branch only:
+
+```yaml
+name: Dependency graph
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  submit:
+    uses: evolution-gaming/scala-github-actions/.github/workflows/dependency-graph.yml@<sha> # v6.2.0
+```
+
+Resolve `<sha>` the same way as for the CI workflow above.
+
+### Inputs
+
+| input               | default                                        | notes                                                              |
+|---------------------|------------------------------------------------|--------------------------------------------------------------------|
+| `java_version`      | `'17'`                                         |                                                                    |
+| `java_distribution` | `'temurin'`                                    |                                                                    |
+| `modules_ignore`    | `''`                                           | unpublished modules, with binary version, e.g. `docs_2.13`         |
+| `configs_ignore`    | `'test integration-test scala-tool scala-doc-tool'` | configurations excluded from the submitted graph             |
+
+Ignore modules that are never published (documentation, integration tests), so their dependencies
+do not generate alerts for artifacts nobody consumes:
+
+```yaml
+jobs:
+  submit:
+    uses: evolution-gaming/scala-github-actions/.github/workflows/dependency-graph.yml@<sha> # v6.2.0
+    with:
+      modules_ignore: 'docs_2.13 docs_3 foo-it-tests_2.13 foo-it-tests_3'
+```
+
 ## Scala Release workflow (v3, v4, v5)
 
 ### Setup

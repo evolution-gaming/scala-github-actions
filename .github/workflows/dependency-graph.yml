@@ -1,0 +1,55 @@
+# Submits the sbt dependency graph to GitHub's Dependency Submission API. GitHub cannot parse
+# build.sbt natively, so without this an sbt repository gets no Dependabot alerts at all.
+# Callers should trigger it on push to their default branch only.
+name: Submit a dependency graph
+
+on:
+  workflow_call:
+    inputs:
+      java_version:
+        description: 'JDK version'
+        type: string
+        default: '17'
+      java_distribution:
+        description: 'JDK distribution'
+        type: string
+        default: 'temurin'
+      modules_ignore:
+        description: >-
+          Space-separated module names to skip, typically unpublished ones. A name includes the
+          binary version, e.g. `docs_2.13 foo-it-tests_2.13`.
+        type: string
+        default: ''
+      configs_ignore:
+        description: 'Space-separated configurations to skip'
+        type: string
+        default: 'test integration-test scala-tool scala-doc-tool'
+
+permissions:
+  contents: write
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v7
+
+      - uses: coursier/cache-action@v8
+
+      - name: setup Java ${{ inputs.java_version }}
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ inputs.java_version }}
+          distribution: ${{ inputs.java_distribution }}
+          cache: 'sbt'
+
+      - name: setup SBT
+        uses: sbt/setup-sbt@v1
+
+      - name: submit dependency graph
+        uses: scalacenter/sbt-dependency-submission@v3
+        with:
+          modules-ignore: ${{ inputs.modules_ignore }}
+          configs-ignore: ${{ inputs.configs_ignore }}
