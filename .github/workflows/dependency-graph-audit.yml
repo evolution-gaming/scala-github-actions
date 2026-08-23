@@ -1,0 +1,40 @@
+# Weekly check that every sbt repository in the organization carries the dependency-graph caller
+# workflow. A repo without it submits no dependency graph, gets no Dependabot alerts and looks
+# falsely clean. The default token only sees public repositories; add a read-only ORG_AUDIT_TOKEN
+# secret to include private ones.
+name: Dependency graph audit
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: find sbt repos missing the workflow
+        env:
+          GH_TOKEN: ${{ secrets.ORG_AUDIT_TOKEN || github.token }}
+        run: |
+          missing=()
+          while read -r repo; do
+            gh api "repos/$repo/contents/build.sbt" --silent 2>/dev/null || continue
+            gh api "repos/$repo/contents/.github/workflows/dependency-graph.yml" --silent 2>/dev/null && continue
+            missing+=("$repo")
+          done < <(gh repo list "$GITHUB_REPOSITORY_OWNER" --no-archived --limit 1000 \
+            --json nameWithOwner,primaryLanguage \
+            --jq '.[] | select(.primaryLanguage.name == "Scala") | .nameWithOwner')
+          {
+            echo "## Dependency graph audit"
+            if [ ${#missing[@]} -eq 0 ]; then
+              echo "Every sbt repository submits its dependency graph."
+            else
+              echo "Repositories without \`.github/workflows/dependency-graph.yml\`:"
+              printf -- '- %s\n' "${missing[@]}"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          [ ${#missing[@]} -eq 0 ]

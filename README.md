@@ -138,12 +138,22 @@ on:
   push:
     branches: [ master ]
 
+permissions:
+  contents: write
+
 jobs:
   submit:
-    uses: evolution-gaming/scala-github-actions/.github/workflows/dependency-graph.yml@<sha> # v6.2.0
+    uses: evolution-gaming/scala-github-actions/.github/workflows/dependency-graph.yml@<sha> # v6.4.0
 ```
 
 Resolve `<sha>` the same way as for the CI workflow above.
+
+The `permissions` block is required. A called workflow can only downgrade the caller's token, never
+raise it, so on a repository whose default workflow permissions are read-only the submission fails
+without it.
+
+A scheduled [audit workflow](.github/workflows/dependency-graph-audit.yml) in this repository lists
+the organization's sbt repos that are missing the caller file and fails while any exist.
 
 ### Inputs
 
@@ -158,9 +168,12 @@ Ignore modules that are never published (documentation, integration tests), so t
 do not generate alerts for artifacts nobody consumes:
 
 ```yaml
+permissions:
+  contents: write
+
 jobs:
   submit:
-    uses: evolution-gaming/scala-github-actions/.github/workflows/dependency-graph.yml@<sha> # v6.2.0
+    uses: evolution-gaming/scala-github-actions/.github/workflows/dependency-graph.yml@<sha> # v6.4.0
     with:
       modules_ignore: 'docs_2.13 docs_3 foo-it-tests_2.13 foo-it-tests_3'
 ```
