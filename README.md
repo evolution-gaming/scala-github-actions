@@ -17,6 +17,9 @@ on:
     branches: [ master ]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     uses: evolution-gaming/scala-github-actions/.github/workflows/ci.yml@<sha> # v6.4.0
@@ -195,17 +198,20 @@ To use Scala Release workflow have to set up project:
   ```
 * create `release.yml` file with content:
   ```yaml
-    name: Publish Release
-    
-    on:
-      push:
-        tags:
-          - 'v*'
-    
-    jobs:
-      release:
-        uses: evolution-gaming/scala-github-actions/.github/workflows/release.yml@v5
-        secrets: inherit
+  name: Publish Release
+  
+  on:
+    push:
+      tags:
+        - 'v*'
+  
+  permissions:
+    contents: write # can delete tag on failed release attempt
+  
+  jobs:
+    release:
+      uses: evolution-gaming/scala-github-actions/.github/workflows/release.yml@v5
+      secrets: inherit
     ```
 
 ### Usage
