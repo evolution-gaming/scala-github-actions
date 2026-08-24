@@ -63,7 +63,7 @@ jobs:
       scala_versions: '["2.13.18", "3.3.7"]'
 ```
 
-### jobs in CI pipeline
+### Jobs in CI pipeline
 
 All checks are run concurrently! Ideally, we must strive to keep them all green, but, it is allowed to merge PR, if 
 some checks are red, for example if code formatting is not introduced, yet. Such red checks must be treated as nudge 
@@ -149,12 +149,12 @@ the organization's sbt repos that are missing the caller file and fails while an
 
 ### Inputs
 
-| input               | default                                        | notes                                                              |
-|---------------------|------------------------------------------------|--------------------------------------------------------------------|
-| `java_version`      | `'17'`                                         |                                                                    |
-| `java_distribution` | `'temurin'`                                    |                                                                    |
-| `modules_ignore`    | `''`                                           | unpublished modules, with binary version, e.g. `docs_2.13`         |
-| `configs_ignore`    | `'test integration-test scala-tool scala-doc-tool'` | configurations excluded from the submitted graph             |
+| input               | default                                             | notes                                                      |
+|---------------------|-----------------------------------------------------|------------------------------------------------------------|
+| `java_version`      | `'17'`                                              |                                                            |
+| `java_distribution` | `'temurin'`                                         |                                                            |
+| `modules_ignore`    | `''`                                                | unpublished modules, with binary version, e.g. `docs_2.13` |
+| `configs_ignore`    | `'test integration-test scala-tool scala-doc-tool'` | configurations excluded from the submitted graph           |
 
 Ignore modules that are never published (documentation, integration tests), so their dependencies
 do not generate alerts for artifacts nobody consumes:
@@ -336,3 +336,14 @@ Contributors from outside the Evolution organization have to sign the
 [Contributor License Agreement](CLA.md) before a pull request can be merged.
 CLA Assistant posts a comment with the link on the pull request, and signing is
 a one-time click that covers every later contribution.
+
+## Revision numbers of knows versions
+
+It is suggested to use the very latest version of all workflows.
+Revision numbers of older versions are provided only for reference purposes!
+
+| Version | Revision number                          |
+|---------|------------------------------------------|
+| v7.0.0  | f02d2d572f3070fba1fd22edfb02070e57a0651b |
+| v6.4.0  | 2a50f1819b6fef2657ba802fd62612b7fc8450f0 |
+| v5.1.0  | 7803a53309369dbada16835a5414af328fe76d8c |
