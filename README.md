@@ -337,13 +337,13 @@ Contributors from outside the Evolution organization have to sign the
 CLA Assistant posts a comment with the link on the pull request, and signing is
 a one-time click that covers every later contribution.
 
-## Revision numbers of knows versions
+## Revision numbers of known versions
 
 It is suggested to use the very latest version of all workflows.
 Revision numbers of older versions are provided only for reference purposes!
 
-| Version | Revision number                          |
-|---------|------------------------------------------|
-| v7.0.0  | f02d2d572f3070fba1fd22edfb02070e57a0651b |
-| v6.4.0  | 2a50f1819b6fef2657ba802fd62612b7fc8450f0 |
-| v5.1.0  | 7803a53309369dbada16835a5414af328fe76d8c |
+| Version | Revision number                            |
+|---------|--------------------------------------------|
+| v7.0.0  | `f02d2d572f3070fba1fd22edfb02070e57a0651b` |
+| v6.4.0  | `2a50f1819b6fef2657ba802fd62612b7fc8450f0` |
+| v5.1.0  | `7803a53309369dbada16835a5414af328fe76d8c` |
