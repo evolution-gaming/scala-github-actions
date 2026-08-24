@@ -1,9 +1,9 @@
 # Scala GitHub Actions
 
-## Scala CI workflow
+## Scala Continuous Integration (CI) workflow
 
-Runs tests, coverage, binary compatibility, formatting and Scaladoc on every push and pull request.
-Replaces the handwritten `ci.yml` that each project used to carry.
+Runs tests with coverage, binary compatibility, formatting and Scaladoc checks on every pull request and push on 
+"main" branch. Replaces the handwritten `ci.yml` that each project used to carry.
 
 ### Setup
 
@@ -19,7 +19,7 @@ on:
 
 jobs:
   test:
-    uses: evolution-gaming/scala-github-actions/.github/workflows/ci.yml@<sha> # v6.2.0
+    uses: evolution-gaming/scala-github-actions/.github/workflows/ci.yml@<sha> # v6.4.0
 ```
 
 Nothing else is required if the project uses the defaults below.
@@ -42,52 +42,44 @@ alternatives and drops the security rating to C:
 
 ### Inputs
 
-| input                  | default                  | notes                                                                             |
-|------------------------|--------------------------|-----------------------------------------------------------------------------------|
-| `scala_versions`       | `'["2.13.18", "3.3.8"]'` | JSON array; becomes the build matrix                                              |
-| `java_version`         | `'17'`                   |                                                                                   |
-| `java_distribution`    | `'temurin'`              |                                                                                   |
-| `test_task`            | auto                     | `testFull` on sbt 2, `test` on sbt 1, read from `project/build.properties`        |
-| `coverage`             | `true`                   | collect coverage and upload to Coveralls                                          |
-| `version_policy_check` | `true`                   | requires [sbt-version-policy](https://github.com/scalacenter/sbt-version-policy/) |
-| `scalafmt_check`       | `true`                   |                                                                                   |
-| `doc_check`            | `true`                   | runs `Compile/doc`                                                                |
-| `sonar`                | `false`                  | run a SonarQube Cloud scan, see below                                             |
-| `sonar_project_key`    | `<owner>_<repo>`         |                                                                                   |
-| `sonar_args`           | `''`                     | extra `-D` arguments for the scanner                                              |
+| input               | default                  | notes                                                                        |
+|---------------------|--------------------------|------------------------------------------------------------------------------|
+| `scala_versions`    | `'["2.13.18", "3.3.8"]'` | JSON array; becomes the build matrix                                         |
+| `java_version`      | `'17'`                   |                                                                              |
+| `java_distribution` | `'temurin'`              |                                                                              |
+| `test_task`         | auto                     | `testFull` on sbt 2, `test` on sbt 1, read from `project/build.properties`   |
+| `clean_task`        | auto                     | `cleanFull` on sbt 2, `clean` on sbt 1, read from `project/build.properties` |
+| `sonar`             | `false`                  | run a SonarQube Cloud scan, see below                                        |
+| `sonar_project_key` | `<owner>_<repo>`         |                                                                              |
+| `sonar_args`        | `''`                     | extra `-D` arguments for the scanner                                         |
 
 Example for a project without `sbt-version-policy` and on a different Scala set:
 
 ```yaml
 jobs:
   test:
-    uses: evolution-gaming/scala-github-actions/.github/workflows/ci.yml@<sha> # v6.2.0
+    uses: evolution-gaming/scala-github-actions/.github/workflows/ci.yml@<sha> # v6.4.0
     with:
       scala_versions: '["2.13.18", "3.3.7"]'
-      version_policy_check: false
 ```
 
-### Why the steps are ordered this way
+### jobs in CI pipeline
 
-Two sbt 2 behaviours make a naive coverage setup report nothing while still passing:
+All checks are run concurrently! Ideally, we must strive to keep them all green, but, it is allowed to merge PR, if 
+some checks are red, for example if code formatting is not introduced, yet. Such red checks must be treated as nudge 
+to improve the quality of code in repo! 
 
-* sbt 2's compile cache is **not** keyed on scoverage's instrumentation. If a plain compile runs
-  first, the coverage build reuses those uninstrumented classes and the report comes out empty. The
-  coverage build therefore runs **before** the formatting, binary-compatibility and scaladoc checks.
-* `sbt/setup-sbt` restores `~/.cache/sbt` across runs by default, which reintroduces the same problem
-  on any run whose build files did not change. This workflow sets `disk-cache: false` whenever
-  coverage is enabled.
-
-The workflow also fails if the produced Cobertura report has no valid lines, so a silently empty
-report is an error rather than a green build.
-
-Binary compatibility, formatting and Scaladoc run as **explicit sbt tasks**, not via a project-local
-`check` alias. An alias can be stubbed out (`addCommandAlias("check", "show version")`), which makes
-the gate silently guarantee nothing.
-
-The workflow checks out with `fetch-depth: 0`. Without tags sbt-dynver reports the version as
-`0.0.0`, `versionPolicyCheck` then has no previous version to compare against, and the binary
-compatibility check passes without checking anything.
+* `test-coverage` - runs with disabled disk cache for SBT setup action (`disk-cache: false`) to make sure that 
+  test coverage gets run with fully instrumented compilation. The workflow also fails if the produced Cobertura 
+  report has no valid lines, so a silently empty report is an error rather than a green build.
+  If project has `sonar` integration configured and 
+  enabled, then `sonar scan` will get run after coverage reports are uploaded
+* `binary-compatibility` - runs [sbt-version-policy](https://github.com/scalacenter/sbt-version-policy/)'s 
+  `versionPolicyCheck` task on repo with full history (`fetch-depth: 0`) to make sure that plugin can find the tag 
+  for previous version
+* `formatting` - runs [scalafmt](https://scalameta.org/scalafmt/)'s `scalafmtCheckRepo` task (requires at 
+  least version 2.6.2)
+* `scaladoc` - calls `Compile/doc` task to make sure that Scaladocs compile
 
 ### SonarQube Cloud
 
@@ -172,13 +164,13 @@ jobs:
 To use Scala Release workflow have to set up project:
 * add latest [sbt-dynver](https://github.com/sbt/sbt-dynver) plugin
 * add Evolution's artifactory plugin [sbt-artifactory-plugin](https://github.com/evolution-gaming/sbt-artifactory-plugin)
-* defined command alias `check` which runs code quality checks, for example: [scalafmt](https://scalameta.org/scalafmt/)
-  and [scalafix](https://scalacenter.github.io/scalafix/), and binary compatibility check by
-  [sbt-version-policy](https://github.com/scalacenter/sbt-version-policy/):
+* defined command alias `check` which runs code quality checks, for 
+  example: [scalafmt](https://scalameta.org/scalafmt/) and binary compatibility check 
+  by [sbt-version-policy](https://github.com/scalacenter/sbt-version-policy/):
   ```sbt
-  addCommandAlias("fmt", "all scalafmtAll scalafmtSbt; scalafixEnable; scalafixAll") // optional: for development
-  addCommandAlias("check", "all versionPolicyCheck Compile/doc scalafmtCheckAll scalafmtSbtCheck; scalafixEnable; scalafixAll --check")
-  addCommandAlias("build", "all compile test") // optional: for development
+  addCommandAlias("fmt", "all scalafmtRepo") // optional: for development
+  addCommandAlias("check", "all versionPolicyCheck Compile/doc scalafmtCheckRepo")
+  addCommandAlias("build", "+all compile testFull") // optional: for development
   ```
   as very minimum "no-op" placeholder:
   ```sbt
