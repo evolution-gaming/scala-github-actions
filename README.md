@@ -350,6 +350,6 @@ Revision numbers of older versions are provided only for reference purposes!
 
 | Version | Revision number                            |
 |---------|--------------------------------------------|
-| v7.0.0  | `f02d2d572f3070fba1fd22edfb02070e57a0651b` |
+| v7.0.1  | `61f111a4472fde7b63e5921ac8a238f22d1bb028` |
 | v6.4.0  | `2a50f1819b6fef2657ba802fd62612b7fc8450f0` |
 | v5.1.0  | `7803a53309369dbada16835a5414af328fe76d8c` |
