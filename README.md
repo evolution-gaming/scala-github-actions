@@ -173,6 +173,46 @@ jobs:
       modules_ignore: 'docs_2.13 docs_3 foo-it-tests_2.13 foo-it-tests_3'
 ```
 
+## Merge queue (Mergify)
+
+Rebases an approved pull request on the default branch, reruns its CI, then merges it. `scala-steward`
+updates are queued without an approval.
+
+### Setup
+
+Install the Mergify app on the project and on this repository, then create `.mergify.yml`:
+
+```yaml
+extends: scala-github-actions
+```
+
+There is no revision to pin, so this file is live for every project extending it as soon as it lands here.
+
+To replace or switch off a single rule, redefine it by name, the local file wins:
+
+```yaml
+extends: scala-github-actions
+
+pull_request_rules:
+  - name: queue scala-steward updates
+    disabled:
+      reason: dependency updates are reviewed by hand here
+    conditions: []
+    actions:
+      queue:
+```
+
+### Notes
+
+* `check-success~=^test /` is true as soon as one matching check is green, hence the
+  `-check-pending~=^test /` and `-check-failure~=^test /` next to it. Bumping Scala versions or renaming
+  a job needs no change here.
+* `AI Policy Check` is required by the org ruleset, so it belongs in the same list.
+* there is no attribute for "the default branch", hence `base~=^(main|master)$`. It also keeps stacked
+  pull requests out of the queue.
+* `max_parallel_checks: 1` with identical queue and merge conditions gives in-place checks instead of
+  temporary draft pull requests.
+
 ## Scala Release workflow (v3, v4, v5)
 
 ### Setup
