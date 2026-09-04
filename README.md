@@ -173,6 +173,69 @@ jobs:
       modules_ignore: 'docs_2.13 docs_3 foo-it-tests_2.13 foo-it-tests_3'
 ```
 
+## Merge queue (Mergify)
+
+Queues a pull request once it is approved and CI is green, rebases it on the default branch, waits for the
+checks to pass again, then merges. Dependency updates opened by `scala-steward` are queued without an
+approval.
+
+### Setup
+
+The Mergify app has to be installed on the project and on this repository, then create `.mergify.yml`:
+
+```yaml
+extends: scala-github-actions
+```
+
+That is the whole file. Unlike the workflows above there is no revision to pin, `extends` takes a
+repository name and nothing else, so whatever sits in this repository's `.mergify.yml` applies to every
+project extending it as soon as it lands here. Undoing a change means another commit here rather than a
+bump downstream.
+
+### Diverging from the shared config
+
+`pull_request_rules` and `queue_rules` merge by name and the local file wins, so a project can replace or
+switch off a single rule and keep the rest:
+
+```yaml
+extends: scala-github-actions
+
+pull_request_rules:
+  - name: queue scala-steward updates
+    disabled:
+      reason: dependency updates are reviewed by hand here
+    conditions: []
+    actions:
+      queue:
+```
+
+The `shared` key is the exception, it does not merge, so a YAML anchor has to live in the same file that
+uses it.
+
+### Implementation notes
+
+* the CI gate is three conditions rather than a list of check names:
+
+  ```yaml
+  - check-success~=^test /
+  - -check-pending~=^test /
+  - -check-failure~=^test /
+  ```
+
+  `~=` is a regex match, and against a list attribute it holds when **any** element matches, so the first
+  condition on its own is satisfied by a single green check. The two negatives are what turn it into "all
+  of them". In exchange, bumping Scala versions or renaming a job in `ci.yml` needs no change here.
+* `check-success=AI Policy Check` sits in the same list because the org ruleset makes that workflow
+  required on the default branch. Without it Mergify would attempt merges that GitHub refuses.
+* the rules match `base~=^(main|master)$`. Mergify has no attribute for "the default branch", and of the
+  projects calling the CI workflow 40 are on `master` against 7 on `main`. A project whose default branch
+  is named anything else has to override the rules locally. The condition also keeps stacked pull requests
+  out of the queue, where the base is another pull request's head branch and merging early makes a mess.
+* `max_parallel_checks: 1`, with `queue_conditions` and `merge_conditions` identical, is what enables
+  in-place checks. The queue then rebases the real pull request and reruns its CI instead of opening a
+  temporary draft one, which keeps Codacy, CodeRabbit and the policy check on the pull request people are
+  looking at.
+
 ## Scala Release workflow (v3, v4, v5)
 
 ### Setup
