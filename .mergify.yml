@@ -32,3 +32,21 @@ pull_request_rules:
       - label!=do-not-merge
     actions:
       queue:
+
+  - name: flag non breaking changes
+    conditions:
+      - check-success~=^test / binary-compatibility
+      - -check-pending~=^test / binary-compatibility
+      - -check-failure~=^test / binary-compatibility
+    actions:
+      label:
+        toggle:
+          - non-breaking-change
+
+  - name: flag binary incompatible changes
+    conditions:
+      - check-failure~=^test / binary-compatibility
+    actions:
+      label:
+        toggle:
+          - release-bump-needed

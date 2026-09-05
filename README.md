@@ -176,9 +176,17 @@ jobs:
 ## Merge queue (Mergify)
 
 Rebases an approved pull request on the default branch, reruns its CI, then merges it. `scala-steward`
-updates are queued without an approval.
+updates are queued without an approval. Also labels a pull request `non-breaking-change` or
+`release-bump-needed` from the outcome of the binary compatibility checks.
 
 ### Setup
+
+Create the two labels if the project doesn't have them:
+
+```sh
+gh label create non-breaking-change -d "binary compatible with the current release" -c 0e8a16
+gh label create release-bump-needed -d "breaks binary compatibility, needs a major release" -c d93f0b
+```
 
 Install the Mergify app on the project and on this repository, then create `.mergify.yml`:
 
