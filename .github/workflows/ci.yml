@@ -79,17 +79,17 @@ jobs:
       # sbt 1 has neither an action cache nor a `target/out`, so the coverage job skips the caching
       # steps there rather than pointing them at paths that do not exist.
       - name: detect sbt 2
-        id: sbt2
+        id: uses-sbt2
         run: |
           if grep -qE '^sbt\.version\s*=\s*2\.' project/build.properties; then
-            echo "sbt2=true" >> "$GITHUB_OUTPUT"
+            echo "uses-sbt2=true" >> "$GITHUB_OUTPUT"
           else
-            echo "sbt2=false" >> "$GITHUB_OUTPUT"
+            echo "uses-sbt2=false" >> "$GITHUB_OUTPUT"
           fi
 
     outputs:
       test: ${{ steps.test-task.outputs.test }}
-      sbt2: ${{ steps.sbt2.outputs.sbt2 }}
+      uses-sbt2: ${{ steps.uses-sbt2.outputs.uses-sbt2 }}
 
   test-coverage:
     runs-on: ubuntu-latest
@@ -129,7 +129,7 @@ jobs:
       # tests die writing their measurements into a directory that is not there, so the two are kept
       # in one entry under one key: either both come back or neither does.
       - name: restore build output
-        if: needs.sbt-tasks.outputs.sbt2 == 'true'
+        if: needs.sbt-tasks.outputs.uses-sbt2 == 'true'
         uses: actions/cache@v6
         with:
           path: |
@@ -142,7 +142,7 @@ jobs:
       # previous run's hits into this report. The reports go too, otherwise the empty-report check
       # below can pass on a stale file.
       - name: drop stale coverage data
-        if: needs.sbt-tasks.outputs.sbt2 == 'true'
+        if: needs.sbt-tasks.outputs.uses-sbt2 == 'true'
         run: |
           find . -path '*/scoverage-data/scoverage.measurements.*' -delete
           find . -type d \( -name coverage-report -o -name scoverage-report \) -prune -exec rm -rf {} +
