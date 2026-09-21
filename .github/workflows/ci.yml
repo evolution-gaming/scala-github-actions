@@ -133,7 +133,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: |
-            ~/.cache/sbt
+            ~/.cache/sbt/v2
             target/out
           key: sbt-coverage-${{ runner.os }}-java${{ inputs.java_version }}-scala${{ matrix.scala }}-${{ github.sha }}
           restore-keys: sbt-coverage-${{ runner.os }}-java${{ inputs.java_version }}-scala${{ matrix.scala }}-

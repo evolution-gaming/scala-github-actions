@@ -73,7 +73,7 @@ some checks are red, for example if code formatting is not introduced, yet. Such
 to improve the quality of code in repo! 
 
 * `test-coverage` - runs the instrumented build and uploads the Cobertura report to Coveralls. On sbt 2 the 
-  action cache (`~/.cache/sbt`) and the build output (`target/out`) are cached together, as a single entry under 
+  action cache (`~/.cache/sbt/v2`) and the build output (`target/out`) are cached together, as a single entry under 
   one key: sbt's action cache restores `classes` but not scoverage's `scoverage-data`, which the compiler writes 
   as a side effect, and a run that gets one without the other fails while the tests write their measurements. 
   Stale measurement files and reports are deleted before the build, so a restored `target/out` cannot fold the 
