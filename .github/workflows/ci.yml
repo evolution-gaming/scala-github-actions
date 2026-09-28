@@ -292,3 +292,22 @@ jobs:
 
       - name: scaladoc ${{ matrix.scala }}
         run: sbt "++${{ matrix.scala }}; Compile/doc"
+
+  # One status check to require in branch protection rules, instead of every matrix leg by name.
+  # See: https://github.com/re-actors/alls-green
+  all-green:
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - sbt-tasks
+      - test-coverage
+      - coverage-finished
+      - binary-compatibility
+      - formatting
+      - scaladoc
+
+    steps:
+      - name: decide whether the needed jobs succeeded or failed
+        uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0
+        with:
+          jobs: ${{ toJSON(needs) }}
