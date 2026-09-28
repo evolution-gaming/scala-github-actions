@@ -51,7 +51,7 @@ alternatives and drops the security rating to C:
 | `java_version`      | `'17'`                   |                                                                              |
 | `java_distribution` | `'temurin'`              |                                                                              |
 | `test_task`         | auto                     | `testFull` on sbt 2, `test` on sbt 1, read from `project/build.properties`   |
-| `clean_task`        | auto                     | `cleanFull` on sbt 2, `clean` on sbt 1, read from `project/build.properties` |
+| `clean_task`        | `''`                     | optional sbt task run before the coverage build; empty means no clean       |
 | `sonar`             | `false`                  | run a SonarQube Cloud scan, see below                                        |
 | `sonar_project_key` | `<owner>_<repo>`         |                                                                              |
 | `sonar_args`        | `''`                     | extra `-D` arguments for the scanner                                         |
@@ -72,11 +72,14 @@ All checks are run concurrently! Ideally, we must strive to keep them all green,
 some checks are red, for example if code formatting is not introduced, yet. Such red checks must be treated as nudge 
 to improve the quality of code in repo! 
 
-* `test-coverage` - runs with disabled disk cache for SBT setup action (`disk-cache: false`) to make sure that 
-  test coverage gets run with fully instrumented compilation. The workflow also fails if the produced Cobertura 
-  report has no valid lines, so a silently empty report is an error rather than a green build.
-  If project has `sonar` integration configured and 
-  enabled, then `sonar scan` will get run after coverage reports are uploaded
+* `test-coverage` - runs the instrumented build and uploads the Cobertura report to Coveralls. On sbt 2 the 
+  action cache (`~/.cache/sbt/v2`) and the build output (`target/out`) are cached together, as a single entry under 
+  one key: sbt's action cache restores `classes` but not scoverage's `scoverage-data`, which the compiler writes 
+  as a side effect, and a run that gets one without the other fails while the tests write their measurements. 
+  Stale measurement files and reports are deleted before the build, so a restored `target/out` cannot fold the 
+  previous run's coverage into this one. The workflow also fails if the produced Cobertura report has no valid 
+  lines, so a silently empty report is an error rather than a green build. If project has `sonar` integration 
+  configured and enabled, then `sonar scan` will get run after coverage reports are uploaded
 * `binary-compatibility` - runs [sbt-version-policy](https://github.com/scalacenter/sbt-version-policy/)'s 
   `versionPolicyCheck` task on repo with full history (`fetch-depth: 0`) to make sure that plugin can find the tag 
   for previous version

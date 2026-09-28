@@ -23,8 +23,8 @@ on:
         default: ''
       clean_task:
         description: >-
-          sbt task that cleans the working directory. Defaults to `cleanFull` on sbt 2 and 
-          `clean` on sbt 1, detected from project/build.properties.
+          Optional sbt task to run before the coverage build. Empty by default: the build output is
+          restored from cache between runs, and `cleanFull` drops sbt 2's action cache.
         type: string
         default: ''
       sonar:
@@ -76,23 +76,20 @@ jobs:
             echo "test=test" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: resolve clean task
-        id: clean-task
-        env:
-          CLEAN_TASK: ${{ inputs.clean_task }}
+      # sbt 1 has neither an action cache nor a `target/out`, so the coverage job skips the caching
+      # steps there rather than pointing them at paths that do not exist.
+      - name: detect sbt 2
+        id: uses-sbt2
         run: |
-          if [[ -n "$CLEAN_TASK" ]]; then
-            echo "clean=$CLEAN_TASK" >> "$GITHUB_OUTPUT"
-          elif grep -qE '^sbt\.version\s*=\s*2\.' project/build.properties; then
-            # in sbt 2 the `clean` doesn't remove all generated classes
-            echo "clean=cleanFull" >> "$GITHUB_OUTPUT"
+          if grep -qE '^sbt\.version\s*=\s*2\.' project/build.properties; then
+            echo "uses-sbt2=true" >> "$GITHUB_OUTPUT"
           else
-            echo "clean=clean" >> "$GITHUB_OUTPUT"
+            echo "uses-sbt2=false" >> "$GITHUB_OUTPUT"
           fi
 
     outputs:
       test: ${{ steps.test-task.outputs.test }}
-      clean: ${{ steps.clean-task.outputs.clean }}
+      uses-sbt2: ${{ steps.uses-sbt2.outputs.uses-sbt2 }}
 
   test-coverage:
     runs-on: ubuntu-latest
@@ -123,15 +120,44 @@ jobs:
       - name: setup SBT
         uses: sbt/setup-sbt@v1
         with:
-          # sbt 2's disk cache is restored across runs. Disable disk cache to force full coverage run
+          # the action's own disk cache is shared by every job and every matrix leg under one key,
+          # so it cannot be paired with this job's `target`. Cached below instead.
           disk-cache: false
 
-      # The coverage build runs before any other compile: scoverage's instrumentation is not part of
-      # sbt's compile cache key, so a plain compile done first would be reused here and the coverage
-      # report would come out empty.
-      - name: build ${{ matrix.scala }}
+      # sbt's action cache restores `classes` but not `scoverage-data`, which the compiler writes as
+      # a side effect of the instrumented compile. Restore the action cache without `target` and the
+      # tests die writing their measurements into a directory that is not there, so the two are kept
+      # in one entry under one key: either both come back or neither does.
+      - name: restore build output
+        if: needs.sbt-tasks.outputs.uses-sbt2 == 'true'
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/sbt/v2
+            target/out
+          key: sbt-coverage-${{ runner.os }}-java${{ inputs.java_version }}-scala${{ matrix.scala }}-${{ github.sha }}
+          restore-keys: sbt-coverage-${{ runner.os }}-java${{ inputs.java_version }}-scala${{ matrix.scala }}-
+
+      # Measurements are written per run and never pruned, so a restored `target` would fold the
+      # previous run's hits into this report. The reports go too, otherwise the empty-report check
+      # below can pass on a stale file.
+      - name: drop stale coverage data
+        if: needs.sbt-tasks.outputs.uses-sbt2 == 'true'
         run: |
-          sbt "++${{ matrix.scala }}; ${{ needs.sbt-tasks.outputs.clean }}; coverage; ${{ needs.sbt-tasks.outputs.test }}; coverageAggregate"
+          find . -path '*/scoverage-data/scoverage.measurements.*' -delete
+          find . -type d \( -name coverage-report -o -name scoverage-report \) -prune -exec rm -rf {} +
+
+      - name: build ${{ matrix.scala }}
+        env:
+          CLEAN_TASK: ${{ inputs.clean_task }}
+          TEST_TASK: ${{ needs.sbt-tasks.outputs.test }}
+          SCALA: ${{ matrix.scala }}
+        run: |
+          tasks="coverage; $TEST_TASK; coverageAggregate"
+          if [[ -n "$CLEAN_TASK" ]]; then
+            tasks="$CLEAN_TASK; $tasks"
+          fi
+          sbt "++$SCALA; $tasks"
 
       - name: locate coverage report
         id: coverage
