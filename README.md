@@ -83,6 +83,10 @@ to improve the quality of code in repo!
 * `formatting` - runs [scalafmt](https://scalameta.org/scalafmt/)'s `scalafmtCheckRepo` task (requires at 
   least version 2.6.2)
 * `scaladoc` - calls `Compile/doc` task to make sure that Scaladocs compile
+* `all-green` - a single check that passes only if all of the above did, via
+  [alls-green](https://github.com/re-actors/alls-green). Require it in branch protection rules as
+  `test / all-green` (named after the caller's job) rather than listing every matrix leg; callers no
+  longer need their own `all-green` job
 
 ### SonarQube Cloud
 
