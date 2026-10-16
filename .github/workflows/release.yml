@@ -4,9 +4,12 @@ on:
   workflow_call:
     inputs:
       verify_sbt_command:
-        description: 'sbt command for verifying the build before publishing'
+        description: >-
+          sbt command for verifying the build before publishing. Defaults to
+          `cleanFull; +check; +all testFull package` on sbt 2 and `+clean; +check; +all test package`
+          on sbt 1, detected from project/build.properties.
         type: string
-        default: '+clean; +check; +all test package'
+        default: ''
       publish_sbt_command:
         description: 'sbt command for publishing artefacts to the Evo JFrog Artifactory'
         type: string
@@ -51,8 +54,25 @@ jobs:
           echo "user=github-publish" >> ${{ env.SBT_CREDENTIALS }}
           echo "password=${{secrets.JFROG_ACCESS_TOKEN}}" >> ${{ env.SBT_CREDENTIALS }}
 
+      - name: resolve verify command
+        id: verify-command
+        env:
+          VERIFY_SBT_COMMAND: ${{ inputs.verify_sbt_command }}
+        run: |
+          if [[ -n "$VERIFY_SBT_COMMAND" ]]; then
+            echo "command=$VERIFY_SBT_COMMAND" >> "$GITHUB_OUTPUT"
+          elif grep -qE '^sbt\.version\s*=\s*2\.' project/build.properties; then
+            # sbt 2 redefined `test` to run only tests that failed or never ran,
+            # and its `clean` doesn't remove all generated classes
+            echo "command=cleanFull; +check; +all testFull package" >> "$GITHUB_OUTPUT"
+          else
+            echo "command=+clean; +check; +all test package" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: verify the build
-        run: sbt "${{ inputs.verify_sbt_command }}"
+        env:
+          VERIFY_SBT_COMMAND: ${{ steps.verify-command.outputs.command }}
+        run: sbt "$VERIFY_SBT_COMMAND"
 
       - name: publish on JFrog Artifactory
         run: sbt "${{ inputs.publish_sbt_command }}"
