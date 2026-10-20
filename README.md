@@ -45,17 +45,17 @@ alternatives and drops the security rating to C:
 
 ### Inputs
 
-| input               | default                  | notes                                                                        |
-|---------------------|--------------------------|------------------------------------------------------------------------------|
-| `scala_versions`    | `'["2.13.18", "3.3.8"]'` | JSON array; becomes the build matrix                                         |
-| `java_version`      | `'17'`                   |                                                                              |
-| `java_distribution` | `'temurin'`              |                                                                              |
-| `java_version_file` | `''`                     | e.g. `'.java-version'`; overrides `java_version`                             |
-| `test_task`         | auto                     | `testFull` on sbt 2, `test` on sbt 1, read from `project/build.properties`   |
-| `clean_task`        | auto                     | `cleanFull` on sbt 2, `clean` on sbt 1, read from `project/build.properties` |
-| `sonar`             | `false`                  | run a SonarQube Cloud scan, see below                                        |
-| `sonar_project_key` | `<owner>_<repo>`         |                                                                              |
-| `sonar_args`        | `''`                     | extra `-D` arguments for the scanner                                         |
+| input               | default                 | notes                                                                        |
+|---------------------|-------------------------|------------------------------------------------------------------------------|
+| `scala_versions`    | `'["2.13.x", "3.3.x"]'` | JSON array; becomes the build matrix                                         |
+| `java_version`      | `'17'`                  |                                                                              |
+| `java_distribution` | `'temurin'`             |                                                                              |
+| `java_version_file` | `''`                    | e.g. `'.java-version'`; overrides `java_version`                             |
+| `test_task`         | auto                    | `testFull` on sbt 2, `test` on sbt 1, read from `project/build.properties`   |
+| `clean_task`        | auto                    | `cleanFull` on sbt 2, `clean` on sbt 1, read from `project/build.properties` |
+| `sonar`             | `false`                 | run a SonarQube Cloud scan, see below                                        |
+| `sonar_project_key` | `<owner>_<repo>`        |                                                                              |
+| `sonar_args`        | `''`                    | extra `-D` arguments for the scanner                                         |
 
 Example for a project without `sbt-version-policy` and on a different Scala set:
 
@@ -64,7 +64,7 @@ jobs:
   test:
     uses: evolution-gaming/scala-github-actions/.github/workflows/ci.yml@<sha> # v6.4.0
     with:
-      scala_versions: '["2.13.18", "3.3.7"]'
+      scala_versions: '["2.13.x", "3.9.x"]'
 ```
 
 To take the JDK version from the project's `.java-version` file instead of `java_version`:
