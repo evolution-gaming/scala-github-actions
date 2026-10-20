@@ -416,6 +416,7 @@ Revision numbers of older versions are provided only for reference purposes!
 
 | Version | Revision number                            |
 |---------|--------------------------------------------|
+| v7.2.0  | `144b8762ece97a25b24621f9d470542fa1e068b4` |
 | v7.1.0  | `999c04ccae0d79a8a0c12ed7d71136762b2ae8c1` |
 | v7.0.1  | `61f111a4472fde7b63e5921ac8a238f22d1bb028` |
 | v6.4.0  | `2a50f1819b6fef2657ba802fd62612b7fc8450f0` |
