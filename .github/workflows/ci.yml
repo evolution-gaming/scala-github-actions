@@ -6,7 +6,7 @@ on:
       scala_versions:
         description: 'JSON array of Scala versions to build against'
         type: string
-        default: '["2.13.18", "3.3.8"]'
+        default: '["2.13.x", "3.3.x"]'
       java_version:
         description: 'JDK version'
         type: string
