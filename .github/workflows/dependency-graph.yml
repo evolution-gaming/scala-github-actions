@@ -14,6 +14,12 @@ on:
         description: 'JDK distribution'
         type: string
         default: 'temurin'
+      java_version_file:
+        description: >-
+          File to read the JDK version from, e.g. `.java-version`. When set, `java_version` is
+          ignored.
+        type: string
+        default: ''
       modules_ignore:
         description: >-
           Space-separated module names to skip, typically unpublished ones. A name includes the
@@ -38,10 +44,12 @@ jobs:
 
       - uses: coursier/cache-action@v8
 
-      - name: setup Java ${{ inputs.java_version }}
+      - name: setup Java ${{ inputs.java_version_file || inputs.java_version }}
         uses: actions/setup-java@v5
         with:
-          java-version: ${{ inputs.java_version }}
+          # setup-java ignores java-version-file whenever java-version is set
+          java-version: ${{ inputs.java_version_file == '' && inputs.java_version || '' }}
+          java-version-file: ${{ inputs.java_version_file }}
           distribution: ${{ inputs.java_distribution }}
           cache: 'sbt'
 
