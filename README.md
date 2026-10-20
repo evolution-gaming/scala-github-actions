@@ -50,6 +50,7 @@ alternatives and drops the security rating to C:
 | `scala_versions`    | `'["2.13.18", "3.3.8"]'` | JSON array; becomes the build matrix                                         |
 | `java_version`      | `'17'`                   |                                                                              |
 | `java_distribution` | `'temurin'`              |                                                                              |
+| `java_version_file` | `''`                     | e.g. `'.java-version'`; overrides `java_version`                             |
 | `test_task`         | auto                     | `testFull` on sbt 2, `test` on sbt 1, read from `project/build.properties`   |
 | `clean_task`        | auto                     | `cleanFull` on sbt 2, `clean` on sbt 1, read from `project/build.properties` |
 | `sonar`             | `false`                  | run a SonarQube Cloud scan, see below                                        |
@@ -64,6 +65,16 @@ jobs:
     uses: evolution-gaming/scala-github-actions/.github/workflows/ci.yml@<sha> # v6.4.0
     with:
       scala_versions: '["2.13.18", "3.3.7"]'
+```
+
+To take the JDK version from the project's `.java-version` file instead of `java_version`:
+
+```yaml
+jobs:
+  test:
+    uses: evolution-gaming/scala-github-actions/.github/workflows/ci.yml@<sha> # v6.4.0
+    with:
+      java_version_file: '.java-version'
 ```
 
 ### Jobs in CI pipeline
@@ -160,6 +171,7 @@ the organization's sbt repos that are missing the caller file and fails while an
 |---------------------|-----------------------------------------------------|------------------------------------------------------------|
 | `java_version`      | `'17'`                                              |                                                            |
 | `java_distribution` | `'temurin'`                                         |                                                            |
+| `java_version_file` | `''`                                                | e.g. `'.java-version'`; overrides `java_version`           |
 | `modules_ignore`    | `''`                                                | unpublished modules, with binary version, e.g. `docs_2.13` |
 | `configs_ignore`    | `'test integration-test scala-tool scala-doc-tool'` | configurations excluded from the submitted graph           |
 
@@ -286,6 +298,16 @@ jobs:
       verify_sbt_command: 'clean; check; all test package'
       publish_sbt_command: 'publish'
 ```
+
+### Inputs
+
+| input                 | default      | notes                                                                                             |
+|-----------------------|--------------|---------------------------------------------------------------------------------------------------|
+| `java_version`        | `'17'`       |                                                                                                   |
+| `java_distribution`   | `'temurin'`  |                                                                                                   |
+| `java_version_file`   | `''`         | e.g. `'.java-version'`; overrides `java_version`                                                  |
+| `verify_sbt_command`  | auto         | `cleanFull; +check; +all testFull package` on sbt 2, `+clean; +check; +all test package` on sbt 1 |
+| `publish_sbt_command` | `'+publish'` |                                                                                                   |
 
 ## Scala Release workflow (v2)
 

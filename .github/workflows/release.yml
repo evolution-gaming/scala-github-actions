@@ -3,6 +3,20 @@ name: Test and publish a new release
 on:
   workflow_call:
     inputs:
+      java_version:
+        description: 'JDK version'
+        type: string
+        default: '17'
+      java_distribution:
+        description: 'JDK distribution'
+        type: string
+        default: 'temurin'
+      java_version_file:
+        description: >-
+          File to read the JDK version from, e.g. `.java-version`. When set, `java_version` is
+          ignored.
+        type: string
+        default: ''
       verify_sbt_command:
         description: >-
           sbt command for verifying the build before publishing. Defaults to
@@ -35,11 +49,13 @@ jobs:
       - name: restore cache
         uses: coursier/cache-action@v8
 
-      - name: setup Java 17
+      - name: setup Java ${{ inputs.java_version_file || inputs.java_version }}
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          # setup-java ignores java-version-file whenever java-version is set
+          java-version: ${{ inputs.java_version_file == '' && inputs.java_version || '' }}
+          java-version-file: ${{ inputs.java_version_file }}
+          distribution: ${{ inputs.java_distribution }}
           cache: 'sbt'
 
       - name: setup SBT
